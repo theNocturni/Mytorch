@@ -103,9 +103,9 @@ def augmentation_train():
         albu.RandomGamma(gamma_limit=(60,130), p=.5),
         ],p=0.5),
                 
-        albu.OneOf([
-        albu.RandomFog(fog_coef_lower=0.1,fog_coef_upper=.2,alpha_coef=0.04,p=0.3),
-        ],p=0.1),
+#         albu.OneOf([
+#         albu.RandomFog(fog_coef_lower=0.1,fog_coef_upper=.2,alpha_coef=0.04,p=0.3),
+#         ],p=0.1),
         
         albu.OneOf([
         albu.GaussNoise(var_limit=0.01, mean=0, p=0.5),
