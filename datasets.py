@@ -108,7 +108,7 @@ def augmentation_train():
 #         ],p=0.1),
         
         albu.OneOf([
-        albu.GaussNoise(var_limit=0.01, mean=0, p=0.5),
+        albu.GaussNoise(var_limit=0.01, p=0.5),
         albu.MultiplicativeNoise(multiplier=(0.98, 1.02), p=0.5),
         ],p=0.3),
         
