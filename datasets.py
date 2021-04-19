@@ -99,7 +99,7 @@ def augmentation_train():
         albu.VerticalFlip(p=0.5),
         
         albu.OneOf([
-        albu.RandomBrightnessContrast(brightness_limit=(-0.5, 0.3), contrast_limit=(-0.3, 0.3), brightness_by_max=False, p=0.5),
+        albu.RandomBrightnessContrast(brightness_limit=(-0.5, 0.3), contrast_limit=(-0.3, 0.3), p=0.5),
         albu.RandomGamma(gamma_limit=(60,130), p=.5),
         ],p=0.5),
                 
