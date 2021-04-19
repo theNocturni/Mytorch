@@ -14,7 +14,6 @@ matplotlib
 seaborn
 tensorboardX
 torch
-pytorch-trainer
 monai
 wandb
 torchsummary
