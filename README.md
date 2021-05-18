@@ -1,6 +1,6 @@
 # Mytorch
 # HOW TO USE
-'''
+```python
 usage: train_seg.py [-h] [--data_path DATA_PATH]
                     [--weightsave_path WEIGHTSAVE_PATH] [--lr LR]
                     [--lr_warmup LR_WARMUP] [--num_workers NUM_WORKERS]
@@ -51,5 +51,4 @@ optional arguments:
                         True,False
   --half_precision HALF_PRECISION
                         True,False
-'''
-
+```
