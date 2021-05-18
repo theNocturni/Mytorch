@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 import monai
 from monai.networks.utils import one_hot
@@ -69,24 +70,24 @@ class BoundaryLoss(nn.Module):
         gt_b_ext = F.max_pool2d(gt_b, kernel_size=self.theta, stride=1, padding=(self.theta - 1) // 2)
         pred_b_ext = F.max_pool2d(pred_b, kernel_size=self.theta, stride=1, padding=(self.theta - 1) // 2)
         
-        # to check hyper-parameter
-        idx= 0
-        print('boundary_loss')
-        print(torch.unique(gt_b),torch.unique(gt_b_ext))
-        plt.figure(figsize=(24,8))
-        plt.subplot(161)
-        plt.imshow(gt[idx,0].cpu().detach().numpy())
-        plt.subplot(162)
-        plt.imshow(gt_b[idx,0].cpu().detach().numpy())
-        plt.subplot(163)
-        plt.imshow(gt_b_ext[0,idx].cpu().detach().numpy())
-        plt.subplot(164)
-        plt.imshow(pred[idx,1].cpu().detach().numpy())
-        plt.subplot(165)
-        plt.imshow(pred_b[idx,0].cpu().detach().numpy())
-        plt.subplot(166)
-        plt.imshow(pred_b_ext[idx,0].cpu().detach().numpy())
-        plt.show()
+#         # to check hyper-parameter
+#         idx= 0
+#         print('boundary_loss')
+#         print(torch.unique(gt_b),torch.unique(gt_b_ext))
+#         plt.figure(figsize=(24,8))
+#         plt.subplot(161)
+#         plt.imshow(gt[idx,0].cpu().detach().numpy())
+#         plt.subplot(162)
+#         plt.imshow(gt_b[idx,0].cpu().detach().numpy())
+#         plt.subplot(163)
+#         plt.imshow(gt_b_ext[0,idx].cpu().detach().numpy())
+#         plt.subplot(164)
+#         plt.imshow(pred[idx,1].cpu().detach().numpy())
+#         plt.subplot(165)
+#         plt.imshow(pred_b[idx,0].cpu().detach().numpy())
+#         plt.subplot(166)
+#         plt.imshow(pred_b_ext[idx,0].cpu().detach().numpy())
+#         plt.show()
         
         # reshape
         gt_b = gt_b.view(n, c, -1)
@@ -158,8 +159,11 @@ def soft_cldice_loss(pred, target, target_skeleton=None):
     it is preferable to calculate target_skeleton on the step of batch forming,
     when it will be in numpy array format by means of opencv
     '''
-    
-    pred = torch.argmax(pred,1).unsqueeze(1).float()
+    if len(pred.shape)==4 and pred.shape[1]>1:
+        pred = torch.argmax(pred,1).unsqueeze(1).float()
+    elif len(pred.shape)==4 and pred.shape[1]==1:
+        pred = pred.float()
+        
     cl_pred = soft_skeletonize(pred)
     if target_skeleton is None:
         target_skeleton = soft_skeletonize(target)
@@ -208,6 +212,17 @@ class clDiceCELoss(nn.Module):
     def __init__(self):        
         super(clDiceCELoss, self).__init__()
         self.ce = CrossEntropyLoss()
+        self.cldice = clDiceLoss()
+
+    def forward(self,yhat,y):
+        cldice = self.cldice(yhat,y)
+        ce = self.ce(yhat,y)     
+        return ce+cldice
+    
+class clDiceBCELoss(nn.Module):
+    def __init__(self):        
+        super(clDiceBCELoss, self).__init__()
+        self.bce = nn.BCELoss()
         self.cldice = clDiceLoss()
 
     def forward(self,yhat,y):

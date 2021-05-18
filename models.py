@@ -51,16 +51,20 @@ class conv_block(nn.Module):
             self.conv = nn.Sequential(
                 nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace),
+#                 nn.ReLU(inplace=inplace),
+                nn.GELU(),
                 nn.Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
+
             )
         elif norm=='instance':
             self.conv = nn.Sequential(
                 nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace),
+#                 nn.ReLU(inplace=inplace),
+                nn.GELU(),
                 nn.Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.InstanceNorm2d(ch_out),
                 nn.ReLU(inplace=inplace)
@@ -72,16 +76,19 @@ class conv_block(nn.Module):
                 nn.ReLU(inplace=inplace),
                 nn.Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
             )
         elif norm=='ws':
             self.conv = nn.Sequential(
                 Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace),
+#                 nn.ReLU(inplace=inplace),
+                nn.GELU(),
                 Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
             )
 
     def forward(self,x):
@@ -100,28 +107,34 @@ class up_conv(nn.Module):
                 nn.Upsample(scale_factor=2),
                 nn.Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
                 nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
+
             )
         elif norm=='instance':
             self.up = nn.Sequential(
                 nn.Upsample(scale_factor=2),
                 nn.Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
                 nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
+
             )
         elif norm=='group':
             self.up = nn.Sequential(
                 nn.Upsample(scale_factor=2),
                 nn.Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
             )
         elif norm=='ws':
             self.up = nn.Sequential(
                 nn.Upsample(scale_factor=2),
                 Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
             )
     def forward(self,x):
         x = self.up(x)
@@ -139,25 +152,31 @@ class Recurrent_block(nn.Module):
             self.conv = nn.Sequential(
                 nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
                 nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
+
             )
         elif norm=='instance':
             self.conv = nn.Sequential(
                 nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
                 nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
             )
         elif norm=='group':
             self.conv = nn.Sequential(
                 nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
             )
         elif norm=='ws':
             self.conv = nn.Sequential(
                 Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
+
             )
 
     def forward(self,x):
@@ -193,25 +212,32 @@ class single_conv(nn.Module):
             self.conv = nn.Sequential(
                 nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
             )
         elif norm=='instance':
             self.conv = nn.Sequential(
                 nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
+
             )
         elif norm=='group':
             self.conv = nn.Sequential(
                 nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
+
             )
         elif norm=='ws':
             self.conv = nn.Sequential(
                 Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
                 nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
+#                 nn.ReLU(inplace=inplace)
+                nn.GELU(),
+
             )
 
     def forward(self,x):
@@ -289,6 +315,7 @@ class Attention_block(nn.Module):
                 nn.Sigmoid()
             )
         self.relu = nn.ReLU(inplace=inplace)
+
         
     def forward(self,g,x):
         g1 = self.W_g(g)
@@ -492,7 +519,7 @@ class AttU_Net(nn.Module):
         self.Up_conv2 = conv_block(ch_in=128, ch_out=64,norm=norm)
 
         self.Conv_1x1 = nn.Conv2d(64,output_ch,kernel_size=1,stride=1,padding=0)
-        self.MCDropout = MCDropout(p=mc_dropout)
+#         self.MCDropout = MCDropout(p=mc_dropout)
         
 #         self.nnblock512 = NONLocalBlock2D(512)
 #         self.nnblock1024 = NONLocalBlock2D(1024)
@@ -518,7 +545,7 @@ class AttU_Net(nn.Module):
         x5 = self.Maxpool(x4)
         x5 = self.Conv5(x5)
 #         x5 = self.nnblock1024(x5) 
-        x5 = self.MCDropout(x5)
+#         x5 = self.MCDropout(x5)
 
         # decoding + concat path
         d5 = self.Up5(x5)
@@ -813,8 +840,8 @@ class R2AttU_Net(nn.Module):
         
         x3 = self.Maxpool(x2)
         x3 = self.RRCNN3(x3)
-        if self.nnblock == True:
-            x3 = self.nnblock256(x3) 
+#         if self.nnblock == True:
+#             x3 = self.nnblock256(x3) 
 #         x3 = self.MCDropout(x3)
         
         x4 = self.Maxpool(x3)
@@ -842,8 +869,8 @@ class R2AttU_Net(nn.Module):
         x3 = self.Att4(g=d4,x=x3)
         d4 = torch.cat((x3,d4),dim=1)
         d4 = self.Up_RRCNN4(d4)        
-        if self.nnblock == True:
-            d4 = self.nnblock256(d4)
+#         if self.nnblock == True:
+#             d4 = self.nnblock256(d4)
 #         d4 = self.MCDropout(d4)
 
         d3 = self.Up3(d4)
@@ -1016,8 +1043,50 @@ class DiscriminateNet(nn.Module):
         n , _ , _ ,_  = segmented_input.size()
         return out.view(n,-1).transpose(0,1)[0]
     
+
     
-from wavelet import wt,iwt
+import pywt
+import torch
+from torch.autograd import Variable
+
+w=pywt.Wavelet('db1')
+
+dec_hi = torch.Tensor(w.dec_hi[::-1]) 
+dec_lo = torch.Tensor(w.dec_lo[::-1])
+rec_hi = torch.Tensor(w.rec_hi)
+rec_lo = torch.Tensor(w.rec_lo)
+
+filters = torch.stack([dec_lo.unsqueeze(0)*dec_lo.unsqueeze(1)/2.0,
+                       dec_lo.unsqueeze(0)*dec_hi.unsqueeze(1),
+                       dec_hi.unsqueeze(0)*dec_lo.unsqueeze(1),
+                       dec_hi.unsqueeze(0)*dec_hi.unsqueeze(1)], dim=0)
+
+inv_filters = torch.stack([rec_lo.unsqueeze(0)*rec_lo.unsqueeze(1)*2.0,
+                           rec_lo.unsqueeze(0)*rec_hi.unsqueeze(1),
+                           rec_hi.unsqueeze(0)*rec_lo.unsqueeze(1),
+                           rec_hi.unsqueeze(0)*rec_hi.unsqueeze(1)], dim=0)
+
+def wt(vimg):
+    padded = vimg
+    res = torch.zeros(vimg.shape[0],4*vimg.shape[1],int(vimg.shape[2]/2),int(vimg.shape[3]/2))
+    res = res.cuda()
+    for i in range(padded.shape[1]):
+        res[:,4*i:4*i+4] = torch.nn.functional.conv2d(padded[:,i:i+1], Variable(filters[:,None].cuda(),requires_grad=True),stride=2)
+        res[:,4*i+1:4*i+4] = (res[:,4*i+1:4*i+4]+1)/2.0
+
+    return res
+
+def iwt(vres):
+    res = torch.zeros(vres.shape[0],int(vres.shape[1]/4),int(vres.shape[2]*2),int(vres.shape[3]*2))
+    res = res.cuda()
+    for i in range(res.shape[1]):
+        vres[:,4*i+1:4*i+4]=2*vres[:,4*i+1:4*i+4]-1
+        temp = torch.nn.functional.conv_transpose2d(vres[:,4*i:4*i+4], Variable(inv_filters[:,None].cuda(),requires_grad=True),stride=2)
+        res[:,i:i+1,:,:] = temp
+    return res
+
+    
+# from wavelet import wt,iwt
 class Waveletnet(nn.Module):
     def __init__(self,in_channel=3,out_channel=2, c=16,ws=True,):
         super(Waveletnet, self).__init__()
@@ -1097,37 +1166,59 @@ class Waveletnet(nn.Module):
 groupnorm_parameter = 8
 
 class TightWaveletnet(nn.Module):
-    def __init__(self,in_channel=3,out_channel=2, c=32, norm='ws',mc_dropout=0.0, nnblock=True):
+    def __init__(self,in_channel=3,out_channel=2, c=32, norm='ws',mc_dropout=0.0, nnblock=False):
         super(TightWaveletnet, self).__init__()
         self.num=1
-        def split_2x2(inputs):
-            inputs_shape = inputs.shape
-        inputs_ul = inputs[:,:,int(inputs_shape[2]/2),int(inputs_shape[3]/2)]
-        inputs_ur = inputs[:,:,int(inputs_shape[2]/2),:int(inputs_shape[3]/2)]
-        inputs_ll = inputs[:,:,:int(inputs_shape[2]/2),int(inputs_shape[3]/2)]
-        inputs_lr = inputs[:,:,:int(inputs_shape[2]/2),:int(inputs_shape[3]/2)]
-        return inputs_ul,inputs_ur,inputs_ll,inputs_lr
-    
+        
+#         def split_2x2(inputs):
+#             inputs_shape = inputs.shape
+#             inputs_ul = inputs[:,:,int(inputs_shape[2]/2),int(inputs_shape[3]/2)]
+#             inputs_ur = inputs[:,:,int(inputs_shape[2]/2),:int(inputs_shape[3]/2)]
+#             inputs_ll = inputs[:,:,:int(inputs_shape[2]/2),int(inputs_shape[3]/2)]
+#             inputs_lr = inputs[:,:,:int(inputs_shape[2]/2),:int(inputs_shape[3]/2)]
+#             return inputs_ul,inputs_ur,inputs_ll,inputs_lr
+
         self.gn1 = nn.GroupNorm(int(c/groupnorm_parameter),c)
         self.gn2 = nn.GroupNorm(int(4*c/groupnorm_parameter),4*c)
         self.gn3 = nn.GroupNorm(int(16*c/groupnorm_parameter),16*c)
         self.gn4 = nn.GroupNorm(int(64*c/groupnorm_parameter),64*c)
-        
-        self.conv1 = conv_block(ch_in=4*in_channel,ch_out=c,norm=norm)
-        self.conv2 = conv_block(ch_in=4*c,ch_out=4*c,norm=norm)
-        self.conv3 = conv_block(ch_in=16*c,ch_out=16*c,norm=norm)
-        self.conv4 = conv_block(ch_in=64*c,ch_out=64*c,norm=norm)
+              
+#         self.Conv1 = conv_block(ch_in=img_ch,ch_out=64,norm=norm)
+#         self.Conv2 = conv_block(ch_in=64,ch_out=128,norm=norm)
+#         self.Conv3 = conv_block(ch_in=128,ch_out=256,norm=norm)
+#         self.Conv4 = conv_block(ch_in=256,ch_out=512,norm=norm)
+#         self.Conv5 = conv_block(ch_in=512,ch_out=1024,norm=norm)
 
-        self.convd1 = conv_block(ch_in=c,ch_out=4*in_channel,norm=norm)
-        self.convd2 = conv_block(ch_in=2*c,ch_out=c,norm=norm)
-        self.convd3 = conv_block(ch_in=8*c,ch_out=4*c,norm=norm)
-        self.convd4 = conv_block(ch_in=32*c,ch_out=16*c,norm=norm)
-
+#         self.Up5 = up_conv(ch_in=1024,ch_out=512,norm=norm)
 #         self.Att5 = Attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
-        self.Att1 = Attention_block(F_g=4*channel,F_l=4*channel,F_int=c,norm=norm)
-        self.Att2 = Attention_block(F_g=4*c,F_l=4*c,F_int=c,norm=norm)
-        self.Att3 = Attention_block(F_g=16*c,F_l=16*c,F_int=4*c,norm=norm)
+#         self.Up_conv5 = conv_block(ch_in=1024, ch_out=512,norm=norm)
 
+#         self.Up4 = up_conv(ch_in=512,ch_out=256,norm=norm)
+#         self.Att4 = Attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
+#         self.Up_conv4 = conv_block(ch_in=512, ch_out=256,norm=norm)
+        
+#         self.Up3 = up_conv(ch_in=256,ch_out=128,norm=norm)
+#         self.Att3 = Attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
+#         self.Up_conv3 = conv_block(ch_in=256, ch_out=128,norm=norm)
+        
+#         self.Up2 = up_conv(ch_in=128,ch_out=64,norm=norm)
+#         self.Att2 = Attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
+#         self.Up_conv2 = conv_block(ch_in=128, ch_out=64,norm=norm)
+
+        self.conv0 = conv_block(ch_in=in_channel,ch_out=int(c/4),norm=norm) # x,c
+        self.conv1 = conv_block(ch_in=c,ch_out=c,norm=norm)                 # x/2, c
+        self.conv2 = conv_block(ch_in=4*c,ch_out=4*c,norm=norm)             # x/4, 4*c
+        self.conv3 = conv_block(ch_in=16*c,ch_out=16*c,norm=norm)           # x/8, 16*c
+        self.conv4 = conv_block(ch_in=64*c,ch_out=64*c,norm=norm)           # x/16,64*c
+
+        self.Att4 = Attention_block(F_g=16*c,F_l=16*c,F_int=4*c,norm=norm)
+        self.convd4 = conv_block(ch_in=32*c,ch_out=16*c,norm=norm)          # x/16,c
+        self.Att3 = Attention_block(F_g=4*c,F_l=4*c,F_int=c,norm=norm)
+        self.convd3 = conv_block(ch_in=8*c,ch_out=4*c,norm=norm)            # x/8, c
+        self.Att2 = Attention_block(F_g=c,F_l=c,F_int=c,norm=norm)
+        self.convd2 = conv_block(ch_in=2*c,ch_out=c,norm=norm)              # x/4, c
+        self.convd1 = conv_block(ch_in=c,ch_out=4*in_channel,norm=norm)     # x/2, c
+        
         self.MCDropout = MCDropout(p=mc_dropout)
         self.nnblock = nnblock
         if nnblock == True:
@@ -1138,25 +1229,24 @@ class TightWaveletnet(nn.Module):
 
     def forward(self, x):
         # x 
+        x = self.conv0(x)
         w1 = wt(x) # x/2
-        print('w1',w1.shape)
 #         w1_ul,w1_ur,w1_ll,w1_lr = split_2x2(w1)
         
         c1 = self.relu(self.conv1(w1))
         c1 = self.gn1(c1)
                 
-        w2 = wt(c1)
-        print('w2',w2.shape)
+        w2 = wt(c1) # x/4
+#         print('w2',w2.shape)
         c2 = self.relu(self.conv2(w2))
         c2 = self.gn2(c2)
         
-        w3 = wt(c2)
-        print('w3',w3.shape)
+        w3 = wt(c2) # x/8
+#         print('w3',w3.shape)
         c3 = self.relu(self.conv3(w3))
         c3 = self.gn3(c3)
         
-        w4 = wt(c3)
-        print('w4',w4.shape)
+        w4 = wt(c3) # x/16
         if self.nnblock == True:
             w4 = self.nnblock_bottleneck(w4)
         w4 = self.MCDropout(w4)
@@ -1166,303 +1256,297 @@ class TightWaveletnet(nn.Module):
         c5 = self.gn4(c5)
         c6 = (self.conv4(c5))
         ic4 = self.relu(c6+w4)
-        
-        
+                
 #         d5 = self.Up5(x5)
 #         x4 = self.Att5(g=d5,x=x4)
 #         d5 = torch.cat((x4,d5),dim=1)        
 #         d5 = self.Up_conv5(d5)
 
-        iw4 = iwt(ic4)
-        print('iw4',iw4.shape)
-        c3 = self.Att3(iw4,c3)
+        iw4 = iwt(ic4) # x/8
+        c3 = self.Att4(iw4,c3)
         iw4 = torch.cat([c3,iw4],1)
         ic3 = self.relu(self.convd4(iw4))
         ic3 = self.gn3(ic3)
         
-        iw3 = iwt(ic3)
-        print('iw3',iw3.shape)
-        c2 = self.Att3(iw4,c2)
+        iw3 = iwt(ic3) # x/4
+        c2 = self.Att3(iw3,c2)
         iw3 = torch.cat([c2,iw3],1)
         ic2 = self.relu(self.convd3(iw3))
         ic2 = self.gn2(ic2)
         
-        iw2 = iwt(ic2)
-        print('iw2',iw2.shape)        
-        c1 = self.Att3(iw4,c1)
+        iw2 = iwt(ic2) # x/2
+        c1 = self.Att2(iw2,c1)
         iw2 = torch.cat([c1,iw2],1)
-        print(iw2.shape)
         ic1 = self.relu(self.convd2(iw2))
         ic1 = self.gn1(ic1)
 
         iw1 = self.relu(self.convd1(ic1))
-        print('iw1',iw1.shape)
 
-        y = iwt(iw1)
+        y = iwt(iw1) # x
         y = self.final(y)
         return y
 
 
     
     
-import math
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+# import math
+# import torch
+# import torch.nn as nn
+# import torch.nn.functional as F
 
-__all__ = ['axial26s', 'axial50s', 'axial50m', 'axial50l']
-
-
-def conv1x1(in_planes, out_planes, stride=1):
-    """1x1 convolution"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+# __all__ = ['axial26s', 'axial50s', 'axial50m', 'axial50l']
 
 
-class AxialAttention(nn.Module):
-    def __init__(self, in_planes, out_planes, groups=8, kernel_size=56,
-                 stride=1, bias=False, width=False):
-        assert (in_planes % groups == 0) and (out_planes % groups == 0)
-        super(AxialAttention, self).__init__()
-        self.in_planes = in_planes
-        self.out_planes = out_planes
-        self.groups = groups
-        self.group_planes = out_planes // groups
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.bias = bias
-        self.width = width
-
-        # Multi-head self attention
-        self.qkv_transform = qkv_transform(in_planes, out_planes * 2, kernel_size=1, stride=1,
-                                           padding=0, bias=False)
-        self.bn_qkv = nn.BatchNorm1d(out_planes * 2)
-        self.bn_similarity = nn.BatchNorm2d(groups * 3)
-        #self.bn_qk = nn.BatchNorm2d(groups)
-        #self.bn_qr = nn.BatchNorm2d(groups)
-        #self.bn_kr = nn.BatchNorm2d(groups)
-        self.bn_output = nn.BatchNorm1d(out_planes * 2)
-
-        # Position embedding
-        self.relative = nn.Parameter(torch.randn(self.group_planes * 2, kernel_size * 2 - 1), requires_grad=True)
-        query_index = torch.arange(kernel_size).unsqueeze(0)
-        key_index = torch.arange(kernel_size).unsqueeze(1)
-        relative_index = key_index - query_index + kernel_size - 1
-        self.register_buffer('flatten_index', relative_index.view(-1))
-        if stride > 1:
-            self.pooling = nn.AvgPool2d(stride, stride=stride)
-
-        self.reset_parameters()
-
-    def forward(self, x):
-        if self.width:
-            x = x.permute(0, 2, 1, 3)
-        else:
-            x = x.permute(0, 3, 1, 2)  # N, W, C, H
-        N, W, C, H = x.shape
-        x = x.contiguous().view(N * W, C, H)
-
-        # Transformations
-        qkv = self.bn_qkv(self.qkv_transform(x))
-        q, k, v = torch.split(qkv.reshape(N * W, self.groups, self.group_planes * 2, H), [self.group_planes // 2, self.group_planes // 2, self.group_planes], dim=2)
-
-        # Calculate position embedding
-        all_embeddings = torch.index_select(self.relative, 1, self.flatten_index).view(self.group_planes * 2, self.kernel_size, self.kernel_size)
-        q_embedding, k_embedding, v_embedding = torch.split(all_embeddings, [self.group_planes // 2, self.group_planes // 2, self.group_planes], dim=0)
-        qr = torch.einsum('bgci,cij->bgij', q, q_embedding)
-        kr = torch.einsum('bgci,cij->bgij', k, k_embedding).transpose(2, 3)
-        qk = torch.einsum('bgci, bgcj->bgij', q, k)
-        stacked_similarity = torch.cat([qk, qr, kr], dim=1)
-        stacked_similarity = self.bn_similarity(stacked_similarity).view(N * W, 3, self.groups, H, H).sum(dim=1)
-        #stacked_similarity = self.bn_qr(qr) + self.bn_kr(kr) + self.bn_qk(qk)
-        # (N, groups, H, H, W)
-        similarity = F.softmax(stacked_similarity, dim=3)
-        sv = torch.einsum('bgij,bgcj->bgci', similarity, v)
-        sve = torch.einsum('bgij,cij->bgci', similarity, v_embedding)
-        stacked_output = torch.cat([sv, sve], dim=-1).view(N * W, self.out_planes * 2, H)
-        output = self.bn_output(stacked_output).view(N, W, self.out_planes, 2, H).sum(dim=-2)
-
-        if self.width:
-            output = output.permute(0, 2, 1, 3)
-        else:
-            output = output.permute(0, 2, 3, 1)
-
-        if self.stride > 1:
-            output = self.pooling(output)
-
-        return output
-
-    def reset_parameters(self):
-        self.qkv_transform.weight.data.normal_(0, math.sqrt(1. / self.in_planes))
-        #nn.init.uniform_(self.relative, -0.1, 0.1)
-        nn.init.normal_(self.relative, 0., math.sqrt(1. / self.group_planes))
+# def conv1x1(in_planes, out_planes, stride=1):
+#     """1x1 convolution"""
+#     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
 
-class AxialBlock(nn.Module):
-    expansion = 2
+# class AxialAttention(nn.Module):
+#     def __init__(self, in_planes, out_planes, groups=8, kernel_size=56,
+#                  stride=1, bias=False, width=False):
+#         assert (in_planes % groups == 0) and (out_planes % groups == 0)
+#         super(AxialAttention, self).__init__()
+#         self.in_planes = in_planes
+#         self.out_planes = out_planes
+#         self.groups = groups
+#         self.group_planes = out_planes // groups
+#         self.kernel_size = kernel_size
+#         self.stride = stride
+#         self.bias = bias
+#         self.width = width
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
-                 base_width=64, dilation=1, norm_layer=None, kernel_size=56):
-        super(AxialBlock, self).__init__()
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
-        width = int(planes * (base_width / 64.))
-        # Both self.conv2 and self.downsample layers downsample the input when stride != 1
-        self.conv_down = conv1x1(inplanes, width)
-        self.bn1 = norm_layer(width)
-        self.hight_block = AxialAttention(width, width, groups=groups, kernel_size=kernel_size)
-        self.width_block = AxialAttention(width, width, groups=groups, kernel_size=kernel_size, stride=stride, width=True)
-        self.conv_up = conv1x1(width, planes * self.expansion)
-        self.bn2 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
+#         # Multi-head self attention
+#         self.qkv_transform = qkv_transform(in_planes, out_planes * 2, kernel_size=1, stride=1,
+#                                            padding=0, bias=False)
+#         self.bn_qkv = nn.BatchNorm1d(out_planes * 2)
+#         self.bn_similarity = nn.BatchNorm2d(groups * 3)
+#         #self.bn_qk = nn.BatchNorm2d(groups)
+#         #self.bn_qr = nn.BatchNorm2d(groups)
+#         #self.bn_kr = nn.BatchNorm2d(groups)
+#         self.bn_output = nn.BatchNorm1d(out_planes * 2)
 
-    def forward(self, x):
-        identity = x
+#         # Position embedding
+#         self.relative = nn.Parameter(torch.randn(self.group_planes * 2, kernel_size * 2 - 1), requires_grad=True)
+#         query_index = torch.arange(kernel_size).unsqueeze(0)
+#         key_index = torch.arange(kernel_size).unsqueeze(1)
+#         relative_index = key_index - query_index + kernel_size - 1
+#         self.register_buffer('flatten_index', relative_index.view(-1))
+#         if stride > 1:
+#             self.pooling = nn.AvgPool2d(stride, stride=stride)
 
-        out = self.conv_down(x)
-        out = self.bn1(out)
-        out = self.relu(out)
+#         self.reset_parameters()
 
-        out = self.hight_block(out)
-        out = self.width_block(out)
-        out = self.relu(out)
+#     def forward(self, x):
+#         if self.width:
+#             x = x.permute(0, 2, 1, 3)
+#         else:
+#             x = x.permute(0, 3, 1, 2)  # N, W, C, H
+#         N, W, C, H = x.shape
+#         x = x.contiguous().view(N * W, C, H)
 
-        out = self.conv_up(out)
-        out = self.bn2(out)
+#         # Transformations
+#         qkv = self.bn_qkv(self.qkv_transform(x))
+#         q, k, v = torch.split(qkv.reshape(N * W, self.groups, self.group_planes * 2, H), [self.group_planes // 2, self.group_planes // 2, self.group_planes], dim=2)
 
-        if self.downsample is not None:
-            identity = self.downsample(x)
+#         # Calculate position embedding
+#         all_embeddings = torch.index_select(self.relative, 1, self.flatten_index).view(self.group_planes * 2, self.kernel_size, self.kernel_size)
+#         q_embedding, k_embedding, v_embedding = torch.split(all_embeddings, [self.group_planes // 2, self.group_planes // 2, self.group_planes], dim=0)
+#         qr = torch.einsum('bgci,cij->bgij', q, q_embedding)
+#         kr = torch.einsum('bgci,cij->bgij', k, k_embedding).transpose(2, 3)
+#         qk = torch.einsum('bgci, bgcj->bgij', q, k)
+#         stacked_similarity = torch.cat([qk, qr, kr], dim=1)
+#         stacked_similarity = self.bn_similarity(stacked_similarity).view(N * W, 3, self.groups, H, H).sum(dim=1)
+#         #stacked_similarity = self.bn_qr(qr) + self.bn_kr(kr) + self.bn_qk(qk)
+#         # (N, groups, H, H, W)
+#         similarity = F.softmax(stacked_similarity, dim=3)
+#         sv = torch.einsum('bgij,bgcj->bgci', similarity, v)
+#         sve = torch.einsum('bgij,cij->bgci', similarity, v_embedding)
+#         stacked_output = torch.cat([sv, sve], dim=-1).view(N * W, self.out_planes * 2, H)
+#         output = self.bn_output(stacked_output).view(N, W, self.out_planes, 2, H).sum(dim=-2)
 
-        out += identity
-        out = self.relu(out)
+#         if self.width:
+#             output = output.permute(0, 2, 1, 3)
+#         else:
+#             output = output.permute(0, 2, 3, 1)
 
-        return out
+#         if self.stride > 1:
+#             output = self.pooling(output)
+
+#         return output
+
+#     def reset_parameters(self):
+#         self.qkv_transform.weight.data.normal_(0, math.sqrt(1. / self.in_planes))
+#         #nn.init.uniform_(self.relative, -0.1, 0.1)
+#         nn.init.normal_(self.relative, 0., math.sqrt(1. / self.group_planes))
 
 
-class AxialAttentionNet(nn.Module):
+# class AxialBlock(nn.Module):
+#     expansion = 2
 
-    def __init__(self, block, layers, in_channel=1, num_classes=1000, zero_init_residual=True,
-                 groups=8, width_per_group=64, replace_stride_with_dilation=None,
-                 norm_layer=None, s=0.5):
-        super(AxialAttentionNet, self).__init__()
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
-        self._norm_layer = norm_layer
+#     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
+#                  base_width=64, dilation=1, norm_layer=None, kernel_size=56):
+#         super(AxialBlock, self).__init__()
+#         if norm_layer is None:
+#             norm_layer = nn.BatchNorm2d
+#         width = int(planes * (base_width / 64.))
+#         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
+#         self.conv_down = conv1x1(inplanes, width)
+#         self.bn1 = norm_layer(width)
+#         self.hight_block = AxialAttention(width, width, groups=groups, kernel_size=kernel_size)
+#         self.width_block = AxialAttention(width, width, groups=groups, kernel_size=kernel_size, stride=stride, width=True)
+#         self.conv_up = conv1x1(width, planes * self.expansion)
+#         self.bn2 = norm_layer(planes * self.expansion)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.downsample = downsample
+#         self.stride = stride
 
-        self.inplanes = int(64 * s)
-        self.dilation = 1
-        if replace_stride_with_dilation is None:
-            # each element in the tuple indicates if we should replace
-            # the 2x2 stride with a dilated convolution instead
-            replace_stride_with_dilation = [False, False, False]
-        if len(replace_stride_with_dilation) != 3:
-            raise ValueError("replace_stride_with_dilation should be None "
-                             "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
-        self.groups = groups
-        self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(in_channel, self.inplanes, kernel_size=7, stride=2, padding=3,
-                               bias=False)
-        self.bn1 = norm_layer(self.inplanes)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, int(128 * s), layers[0], kernel_size=56)
-        self.layer2 = self._make_layer(block, int(256 * s), layers[1], stride=2, kernel_size=56,
-                                       dilate=replace_stride_with_dilation[0])
-        self.layer3 = self._make_layer(block, int(512 * s), layers[2], stride=2, kernel_size=28,
-                                       dilate=replace_stride_with_dilation[1])
-        self.layer4 = self._make_layer(block, int(1024 * s), layers[3], stride=2, kernel_size=14,
-                                       dilate=replace_stride_with_dilation[2])
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(int(1024 * block.expansion * s), num_classes)
+#     def forward(self, x):
+#         identity = x
 
-        for m in self.modules():
-            if isinstance(m, (nn.Conv2d, nn.Conv1d)):
-                if isinstance(m, qkv_transform):
-                    pass
-                else:
-                    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+#         out = self.conv_down(x)
+#         out = self.bn1(out)
+#         out = self.relu(out)
 
-        # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
-        if zero_init_residual:
-            for m in self.modules():
-                if isinstance(m, AxialBlock):
-                    nn.init.constant_(m.bn2.weight, 0)
+#         out = self.hight_block(out)
+#         out = self.width_block(out)
+#         out = self.relu(out)
 
-    def _make_layer(self, block, planes, blocks, kernel_size=56, stride=1, dilate=False):
-        norm_layer = self._norm_layer
-        downsample = None
-        previous_dilation = self.dilation
-        if dilate:
-            self.dilation *= stride
-            stride = 1
-        if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                conv1x1(self.inplanes, planes * block.expansion, stride),
-                norm_layer(planes * block.expansion),
-            )
+#         out = self.conv_up(out)
+#         out = self.bn2(out)
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, groups=self.groups,
-                            base_width=self.base_width, dilation=previous_dilation, 
-                            norm_layer=norm_layer, kernel_size=kernel_size))
-        self.inplanes = planes * block.expansion
-        if stride != 1:
-            kernel_size = kernel_size // 2
+#         if self.downsample is not None:
+#             identity = self.downsample(x)
 
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
-                                base_width=self.base_width, dilation=self.dilation,
-                                norm_layer=norm_layer, kernel_size=kernel_size))
+#         out += identity
+#         out = self.relu(out)
 
-        return nn.Sequential(*layers)
+#         return out
 
-    def _forward_impl(self, x):
-        # See note [TorchScript super()]
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+# class AxialAttentionNet(nn.Module):
 
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
+#     def __init__(self, block, layers, in_channel=1, num_classes=2, zero_init_residual=True,
+#                  groups=8, width_per_group=64, replace_stride_with_dilation=None,
+#                  norm_layer=None, s=0.5):
+#         super(AxialAttentionNet, self).__init__()
+#         if norm_layer is None:
+#             norm_layer = nn.BatchNorm2d
+#         self._norm_layer = norm_layer
 
-        return x
+#         self.inplanes = int(64 * s)
+#         self.dilation = 1
+#         if replace_stride_with_dilation is None:
+#             # each element in the tuple indicates if we should replace
+#             # the 2x2 stride with a dilated convolution instead
+#             replace_stride_with_dilation = [False, False, False]
+#         if len(replace_stride_with_dilation) != 3:
+#             raise ValueError("replace_stride_with_dilation should be None "
+#                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
+#         self.groups = groups
+#         self.base_width = width_per_group
+#         self.conv1 = nn.Conv2d(in_channel, self.inplanes, kernel_size=7, stride=2, padding=3,
+#                                bias=False)
+#         self.bn1 = norm_layer(self.inplanes)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+#         self.layer1 = self._make_layer(block, int(128 * s), layers[0], kernel_size=56)
+#         self.layer2 = self._make_layer(block, int(256 * s), layers[1], stride=2, kernel_size=56,
+#                                        dilate=replace_stride_with_dilation[0])
+#         self.layer3 = self._make_layer(block, int(512 * s), layers[2], stride=2, kernel_size=28,
+#                                        dilate=replace_stride_with_dilation[1])
+#         self.layer4 = self._make_layer(block, int(1024 * s), layers[3], stride=2, kernel_size=14,
+#                                        dilate=replace_stride_with_dilation[2])
+#         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+#         self.fc = nn.Linear(int(1024 * block.expansion * s), num_classes)
 
-    def forward(self, x):
-        return self._forward_impl(x)
+#         for m in self.modules():
+#             if isinstance(m, (nn.Conv2d, nn.Conv1d)):
+#                 if isinstance(m, qkv_transform):
+#                     pass
+#                 else:
+#                     nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+#             elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d, nn.GroupNorm)):
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+
+#         # Zero-initialize the last BN in each residual branch,
+#         # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+#         # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+#         if zero_init_residual:
+#             for m in self.modules():
+#                 if isinstance(m, AxialBlock):
+#                     nn.init.constant_(m.bn2.weight, 0)
+
+#     def _make_layer(self, block, planes, blocks, kernel_size=56, stride=1, dilate=False):
+#         norm_layer = self._norm_layer
+#         downsample = None
+#         previous_dilation = self.dilation
+#         if dilate:
+#             self.dilation *= stride
+#             stride = 1
+#         if stride != 1 or self.inplanes != planes * block.expansion:
+#             downsample = nn.Sequential(
+#                 conv1x1(self.inplanes, planes * block.expansion, stride),
+#                 norm_layer(planes * block.expansion),
+#             )
+
+#         layers = []
+#         layers.append(block(self.inplanes, planes, stride, downsample, groups=self.groups,
+#                             base_width=self.base_width, dilation=previous_dilation, 
+#                             norm_layer=norm_layer, kernel_size=kernel_size))
+#         self.inplanes = planes * block.expansion
+#         if stride != 1:
+#             kernel_size = kernel_size // 2
+
+#         for _ in range(1, blocks):
+#             layers.append(block(self.inplanes, planes, groups=self.groups,
+#                                 base_width=self.base_width, dilation=self.dilation,
+#                                 norm_layer=norm_layer, kernel_size=kernel_size))
+
+#         return nn.Sequential(*layers)
+
+#     def _forward_impl(self, x):
+#         # See note [TorchScript super()]
+#         x = self.conv1(x)
+#         x = self.bn1(x)
+#         x = self.relu(x)
+#         x = self.maxpool(x)
+
+#         x = self.layer1(x)
+#         x = self.layer2(x)
+#         x = self.layer3(x)
+#         x = self.layer4(x)
+
+#         x = self.avgpool(x)
+#         x = torch.flatten(x, 1)
+#         x = self.fc(x)
+
+#         return x
+
+#     def forward(self, x):
+#         return self._forward_impl(x)
     
-import torch.nn as nn
+# import torch.nn as nn
 
-class qkv_transform(nn.Conv1d):
-    """Conv1d for qkv_transform"""
+# class qkv_transform(nn.Conv1d):
+#     """Conv1d for qkv_transform"""
 
-def axial26s(pretrained=False, in_channel=1, **kwargs):
-    model = AxialAttentionNet(AxialBlock, [1, 2, 4, 1],in_channel=in_channel,s=0.5, **kwargs)
-    return model
-
-
-def axial50s(pretrained=False, in_channel=1,**kwargs):
-    model = AxialAttentionNet(AxialBlock, [3, 4, 6, 3],in_channel=in_channel,s=0.5, **kwargs)
-    return model
+# def axial26s(pretrained=False, in_channel=1, **kwargs):
+#     model = AxialAttentionNet(AxialBlock, [1, 2, 4, 1],in_channel=in_channel,s=0.5, **kwargs)
+#     return model
 
 
-def axial50m(pretrained=False, in_channel=1,**kwargs):
-    model = AxialAttentionNet(AxialBlock, [3, 4, 6, 3],in_channel=in_channel,s=0.75, **kwargs)
-    return model
+# def axial50s(pretrained=False, in_channel=1,**kwargs):
+#     model = AxialAttentionNet(AxialBlock, [3, 4, 6, 3],in_channel=in_channel,s=0.5, **kwargs)
+#     return model
 
 
-def axial50l(pretrained=False, in_channel=1,**kwargs):
-    model = AxialAttentionNet(AxialBlock, [3, 4, 6, 3],in_channel=in_channel, s=1, **kwargs)
-    return model
+# def axial50m(pretrained=False, in_channel=1,**kwargs):
+#     model = AxialAttentionNet(AxialBlock, [3, 4, 6, 3],in_channel=in_channel,s=0.75, **kwargs)
+#     return model
+
+
+# def axial50l(pretrained=False, in_channel=1,**kwargs):
+#     model = AxialAttentionNet(AxialBlock, [3, 4, 6, 3],in_channel=in_channel, s=1, **kwargs)
+#     return model
