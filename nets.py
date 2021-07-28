@@ -6,8 +6,6 @@ import monai
 import segmentation_models_pytorch as smp
 
 groupnorm_parameter = 16
-net_inputch = 3
-net_outputch = 3
 
 def init_weights(net, init_type='normal', gain=0.02):
     def init_func(m):
@@ -32,7 +30,6 @@ def init_weights(net, init_type='normal', gain=0.02):
     print('initialize network with %s' % init_type)
     net.apply(init_func)
 
-
 def bn2instance(module):
     module_output = module
     if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
@@ -56,15 +53,38 @@ def bn2instance(module):
     del module
     return module_output
 
-class segunet(nn.Module):
-    def __init__(self, net_inputch=net_inputch, net_outputch=net_outputch):
-        super(segunet, self).__init__()        
+def bn2group(module):
+    num_groups = 16 # hyper_parameter of GroupNorm
+    module_output = module
+    if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+        module_output = torch.nn.GroupNorm(num_groups,
+                                           module.num_features,
+                                           module.eps, 
+                                           module.affine,
+                                          )
+        if module.affine:
+            with torch.no_grad():
+                module_output.weight = module.weight
+                module_output.bias = module.bias
+        module_output.running_mean = module.running_mean
+        module_output.running_var = module.running_var
+        module_output.num_batches_tracked = module.num_batches_tracked
+        if hasattr(module, "qconfig"):
+            module_output.qconfig = module.qconfig
+
+    for name, child in module.named_children():
+        module_output.add_module(name, bn2group(child))
+
+    del module
+    return module_output
+
+class segunet_eb7_batch(nn.Module):
+    def __init__(self, net_inputch=3, net_outputch=2):
+        super(segunet_eb7_batch, self).__init__()        
         self.net_inputch = net_inputch
-        self.net_outputch = net_outputch
-#         self.net = smp.Unet('timm-tf_efficientnet_lite4', in_channels=self.in_channel, classes=self.out_channel)        
+        self.net_outputch = net_outputch  
         self.net = smp.MAnet(
                         encoder_name='timm-efficientnet-b7',
-#                         encoder_name='timm-tf_efficientnet_lite4',
                         encoder_depth=5,
                         encoder_weights='imagenet',
                         decoder_use_batchnorm=True,
@@ -75,11 +95,72 @@ class segunet(nn.Module):
                         activation=None,
                         aux_params=None)
     
-        weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
-        self.net.load_state_dict(weight['net_state_dict'])
-        print('success')
+#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_.pt')
+#         self.net.load_state_dict(weight['net_state_dict'])
+#         print('success')
 #         self.net = bn2instance(self.net)
+    def forward(self,x):
+        return self.net(x)    
 
+class segunet_eb7_instance(nn.Module):
+    def __init__(self, net_inputch=3, net_outputch=2):
+        super(segunet_eb7_instance, self).__init__()        
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch  
+        self.net = smp.MAnet(
+                        encoder_name='timm-efficientnet-b7',
+                        encoder_depth=5,
+                        encoder_weights='imagenet',
+                        decoder_use_batchnorm=True,
+                        decoder_channels=(256, 128, 64, 32, 16),
+                        decoder_pab_channels=64,
+                        in_channels=self.net_inputch, 
+                        classes=self.net_outputch,
+                        activation=None,
+                        aux_params=None)
+    
+        self.net = bn2instance(self.net)
+    def forward(self,x):
+        return self.net(x)    
+    
+class segunet_eb7_group(nn.Module):
+    def __init__(self, net_inputch=3, net_outputch=2):
+        super(segunet_eb7_instance, self).__init__()        
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch  
+        self.net = smp.MAnet(
+                        encoder_name='timm-efficientnet-b7',
+                        encoder_depth=5,
+                        encoder_weights='imagenet',
+                        decoder_use_batchnorm=True,
+                        decoder_channels=(256, 128, 64, 32, 16),
+                        decoder_pab_channels=64,
+                        in_channels=self.net_inputch, 
+                        classes=self.net_outputch,
+                        activation=None,
+                        aux_params=None)
+    
+        self.net = bn2group(self.net)
+    def forward(self,x):
+        return self.net(x)        
+    
+class segunet_elb4(nn.Module):
+    def __init__(self, net_inputch=3, net_outputch=2):
+        super(segunet_elb4, self).__init__()        
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch  
+        self.net = smp.MAnet(
+                        encoder_name='timm-tf_efficientnet_lite4',
+                        encoder_depth=5,
+                        encoder_weights='imagenet',
+                        decoder_use_batchnorm=True,
+                        decoder_channels=(256, 128, 64, 32, 16),
+                        decoder_pab_channels=64,
+                        in_channels=self.net_inputch, 
+                        classes=self.net_outputch,
+                        activation=None,
+                        aux_params=None)
+    
     def forward(self,x):
         return self.net(x)    
     
@@ -217,7 +298,6 @@ class ACT(nn.Module):
         x = self.c(x)
     
         return x
-    
     
 # weight standardization
     
@@ -938,7 +1018,7 @@ class HardMTL_AttUNet(nn.Module):
         return d1,r1
 
 class R2AttU_Net(nn.Module):
-    def __init__(self,net_inputch=net_inputch,net_outputch=net_outputch,t=2,norm='batch',p=0):
+    def __init__(self,net_inputch=3,net_outputch=2,t=2,norm='batch',p=0):
         super(R2AttU_Net,self).__init__()
         
         self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2)
