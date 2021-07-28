@@ -222,8 +222,8 @@ def main(args: Namespace):
     from pytorch_lightning import loggers as pl_loggers
     from pytorch_lightning.callbacks import ModelCheckpoint,LearningRateMonitor, StochasticWeightAveraging, LambdaCallback, EarlyStopping
     
-    args.experiment_name = "Net{}_Netinputch{}_Netoutputch{}_Loss{}_Precision{}_Patchsize{}_Prefix{}"
-                            .format(args.net, args.net_inputch, args.net_outputch, args.lossfn, args.precision,args.patch_size,args.experiment_name)
+    args.experiment_name = "Net{}_Netinputch{}_Netoutputch{}_Loss{}_Precision{}_Patchsize{}_Prefix{}_"\
+    .format(args.net, args.net_inputch, args.net_outputch, args.lossfn, args.precision,args.patch_size,args.experiment_name)
     print('Current Experiment:',args.experiment_name)
     
     wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name)
@@ -233,15 +233,10 @@ def main(args: Namespace):
     wandb.run.name = args.experiment_name + wandb.run.id
     wandb.config.update(args) # adds all of the arguments as config variables
     
-#     tt_logger = pl_loggers.TestTubeLogger(save_dir='logs/', name=args.experiment_name)
-#     tt_logger.log_hyperparams(args)
-#     csv_logger = pl_loggers.CSVLogger(save_dir="logs/",name=args.experiment_name)
-#     csv_logger.log_hyperparams(args)
-    
     checkpoint_callback = ModelCheckpoint(verbose=True, 
                                           monitor='loss_val',
                                           mode='min',
-                                          filename='{epoch:03d}-{loss_val:.4f}',
+                                          filename='{epoch:04d}-{loss_val:.4f}',
                                           save_top_k=3,)
     
     # ------------------------
@@ -253,11 +248,14 @@ def main(args: Namespace):
                                             amp_backend='native',
                                             gpus = -1,
                                             sync_batchnorm =True,
-                                            callbacks=[checkpoint_callback,LearningRateMonitor(),StochasticWeightAveraging(),EarlyStopping(monitor='loss_val',patience=200)],
+                                            callbacks=[checkpoint_callback,
+                                                       LearningRateMonitor(),
+                                                       StochasticWeightAveraging(),
+                                                       EarlyStopping(monitor='loss_val',patience=150)],
                                             auto_scale_batch_size='power',
                                             weights_summary='top', 
                                             log_gpu_memory='min_max',
-                                            max_epochs=2000,
+                                            max_epochs=1000,
                                             deterministic=True,
                                             num_processes=4,
                                             stochastic_weight_avg=True,

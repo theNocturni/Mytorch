@@ -1,188 +1,107 @@
+import numpy as np
 import torch
-import torch.nn
-import argparse
-import logging
-from functools import wraps
-
-import os
-import torch
-import torch.backends.cudnn
-import torch.nn.parallel
-import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
+import kornia
+import cv2
 
-import torchvision
-from torchvision.utils import make_grid
-import torchvision.transforms as transforms
-
-import monai
-
-import random, math, statistics
-import numpy as np
-from sklearn.metrics import *
-# from kornia.morphology import top_hat
-# import kornia
+import matplotlib.pyplot as plt
 
 import wandb
 
-# from utils import *
-# from config import get_config
-import utils
-import models
-import losses
-import datasets
-
-random_seed = 0
-torch.manual_seed(random_seed)
-torch.cuda.manual_seed(random_seed)
-torch.cuda.manual_seed_all(random_seed) # if use multi-GPU
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-np.random.seed(random_seed)
-random.seed(random_seed)
-# set_determinism(seed=0)
-
-FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-LEVEL = logging.DEBUG
-logging.basicConfig(format=FORMAT, level=LEVEL)
-log = logging.getLogger(__name__)
-log.info('Entered module: %s' % __name__)
-
-
-def logger(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        log = logging.getLogger(fn.__name__)
-        log.info('Start running %s' % fn.__name__)
-
-        out = fn(*args, **kwargs)
-
-        log.info('Done running %s' % fn.__name__)
-        # Return the return value
-        return out
-
-    return wrapper
-
-
-def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-
-def weight_init(m):
-    if isinstance(m, torch.nn.Conv2d):
-        torch.nn.init.xavier_uniform_(m.weight)
-        if m.bias is not None:
-            torch.nn.init.constant_(m.bias, 0)
-            
-            
-from skimage.morphology import white_tophat,black_tophat
-from skimage.morphology import disk, star, square
-import mclahe
-import matplotlib.pyplot as plt
-
-def show_samples(batch_x, batch_y, batch_yhat, message=''):
-    '''
-    all inputs should be shaped in BxCxHxW. (only for 2D segmentation)
-    If prediction shape channel more than 2, you need to argmax it. (fixed)
-    The first element of the batch will shown.
-    '''
-    if len(batch_yhat.shape)==4 and batch_yhat.shape[1]>1:
-        batch_yhat = batch_yhat[:,1].unsqueeze(1)
-#     elif len(batch_yhat.shape)==4 and batch_yhat.shape[1]==1:
-#         batch_yhat = batch_yhat.round()        
-    if len(batch_yhat.shape)==3:
-        try:
-            batch_yhat = batch_yhat.unsqueeze(1)
-        except:
-            batch_yhat = np.expand_dims(batch_yhat,1)
-            
-    idx= 0 
-    plt.figure(figsize=(24,16))
-    plt.subplot(151)
-    plt.title(str(message)+'_x')
-    plt.imshow(batch_x[idx,0].cpu().detach(),cmap='gray')
-    plt.subplot(152)
-    plt.title(str(message)+'_x')
-    plt.imshow(batch_x[idx,1].cpu().detach(),cmap='gray')
-    plt.subplot(153)
-    plt.title(str(message)+'_x')
-    plt.imshow(batch_x[idx,2].cpu().detach(),cmap='gray')
-    plt.subplot(154)
-    plt.title(str(message)+'_y')
-    print(torch.unique(batch_y))
-    plt.imshow(batch_yhat[idx,0].cpu().detach(),cmap='gray')
-    batch_yhat = batch_yhat.round()        
-    plt.subplot(155)
-    plt.title(str(message)+'_yhat')
-    plt.title(str(message)+'_y-yhat (Green:FP, Red:FN, White:TP)')
-    
-    temp = np.zeros((batch_x[idx,0].shape[0],batch_x[idx,0].shape[1],3))
-    for idx_ in range(3):
-        temp[...,idx_] = batch_y[idx,0].cpu().detach() # White (gt)
-    try:
-        diff = batch_y[idx,0].float().cpu().detach().numpy()-batch_yhat[idx,0].float().cpu().detach().numpy()
-    except:
-        diff = batch_y[idx,0]-batch_yhat[idx,0]    
-    
-    diff_fp = diff.copy()
-    diff_fp[diff_fp!=-1] = 0
-    diff_fp[diff_fp!=0] = 1
-    diff_fn = diff.copy()
-    diff_fn[diff_fn!=1] = 0
-    diff_fn[diff_fn!=0] = 1
-    
-    temp[...,1] -= diff_fn #R   gt-fn
-    temp[...,2] -= diff_fn #R   gt-fn
-    temp[...,1] += diff_fp #G   gt+fp
-    temp[temp!=0]=1
-    
-    plt.imshow(temp,alpha=1,cmap='gray')
-    plt.show()
-#     f1 =  f1_score(batch_y.cpu().detach().flatten(),batch_yhat.cpu().detach().flatten())
-#     print('dice',f1)
-#     return f1
-
 from sklearn.metrics import *
-def metrics(yhat,y):
+def metrics(yhat, y, prefix=''):
     """
-    Binary classification metric
-    
-    input : long type inputs torch or numpy
-    output : various metric in dictionary form
+    long type inputs torch or numpy
     """
-    
+
     try:
-        try:
-            yhat = yhat.flatten().cpu().detach().numpy()
-            y = y.flatten().cpu().detach().numpy()
-        except:
-            yhat = yhat.flatten().numpy()
-            y = y.flatten().numpy()
+        yhat = yhat.flatten().cpu().detach().numpy()
+        y = y.flatten().cpu().detach().numpy()
     except:
-        yhat = yhat.flatten()
-        y = y.flatten()
-    
+        yhat = yhat.flatten().numpy()
+        y = y.flatten().numpy()
+
     tn, fp, fn, tp = confusion_matrix(y, yhat).ravel()
     accuracy = (tp+tn)/(tn+fp+fn+tp)
     iou = tp/(tp+fp+fn)
     dice = 2*tp/(2*tp+fp+fn)
     specificity = tn / (tn+fp)
     sensitivity = tp / (tp+fn)
-    ppv = tp / (tp+fp)
-    npv = tn / (tn+fn)
+
+    return {'specificity'+prefix:specificity,
+            'sensitivity'+prefix:sensitivity,
+            'dice'+prefix:dice,
+            'iou'+prefix:iou,
+            'accuracy'+prefix:accuracy}
+
+def Activation(tensor,T=1):
+    if tensor.shape[1] != 1:
+        return F.softmax(tensor/T,1)
+    else:
+        return F.sigmoid(tensor/T)
+
+import math
+from torch.optim.lr_scheduler import _LRScheduler
+
+class CosineAnnealingWarmUpRestarts(_LRScheduler):
+    def __init__(self, optimizer, T_0, T_mult=1, eta_max=0.1, T_up=0, gamma=1., last_epoch=-1):
+        if T_0 <= 0 or not isinstance(T_0, int):
+            raise ValueError("Expected positive integer T_0, but got {}".format(T_0))
+        if T_mult < 1 or not isinstance(T_mult, int):
+            raise ValueError("Expected integer T_mult >= 1, but got {}".format(T_mult))
+        if T_up < 0 or not isinstance(T_up, int):
+            raise ValueError("Expected positive integer T_up, but got {}".format(T_up))
+        self.T_0 = T_0
+        self.T_mult = T_mult
+        self.base_eta_max = eta_max
+        self.eta_max = eta_max
+        self.T_up = T_up
+        self.T_i = T_0
+        self.gamma = gamma
+        self.cycle = 0
+        self.T_cur = last_epoch
+        super(CosineAnnealingWarmUpRestarts, self).__init__(optimizer, last_epoch)
     
-    return {'accuracy':accuracy,
-            'dice':dice, 
-            'iou':iou, 
-            'npv':npv,
-            'sensitivity':sensitivity,
-            'specificity':specificity,
-            'ppv':ppv,
-           }
+    def get_lr(self):
+        if self.T_cur == -1:
+            return self.base_lrs
+        elif self.T_cur < self.T_up:
+            return [(self.eta_max - base_lr)*self.T_cur / self.T_up + base_lr for base_lr in self.base_lrs]
+        else:
+            return [base_lr + (self.eta_max - base_lr) * (1 + math.cos(math.pi * (self.T_cur-self.T_up) / (self.T_i - self.T_up))) / 2
+                    for base_lr in self.base_lrs]
+
+    def step(self, epoch=None):
+        if epoch is None:
+            epoch = self.last_epoch + 1
+            self.T_cur = self.T_cur + 1
+            if self.T_cur >= self.T_i:
+                self.cycle += 1
+                self.T_cur = self.T_cur - self.T_i
+                self.T_i = (self.T_i - self.T_up) * self.T_mult + self.T_up
+        else:
+            if epoch >= self.T_0:
+                if self.T_mult == 1:
+                    self.T_cur = epoch % self.T_0
+                    self.cycle = epoch // self.T_0
+                else:
+                    n = int(math.log((epoch / self.T_0 * (self.T_mult - 1) + 1), self.T_mult))
+                    self.cycle = n
+                    self.T_cur = epoch - self.T_0 * (self.T_mult ** n - 1) / (self.T_mult - 1)
+                    self.T_i = self.T_0 * self.T_mult ** (n)
+            else:
+                self.T_i = self.T_0
+                self.T_cur = epoch
+                
+        self.eta_max = self.base_eta_max * (self.gamma**self.cycle)
+        self.last_epoch = math.floor(epoch)
+        for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
+            param_group['lr'] = lr
+
+# 먼저 warm up을 위하여 optimizer에 입력되는 learning rate = 0 또는 0에 가까운 아주 작은 값을 입력합니다.
+# 위 코드의 스케쥴러에서는 T_0, T_mult, eta_max 외에 T_up, gamma 값을 가집니다.
+# T_0, T_mult의 사용법은 pytorch 공식 CosineAnnealingWarmUpRestarts와 동일합니다. eta_max는 learning rate의 최댓값을 뜻합니다. T_up은 Warm up 시 필요한 epoch 수를 지정하며 일반적으로 짧은 epoch 수를 지정합니다. gamma는 주기가 반복될수록 eta_max 곱해지는 스케일값 입니다.
+
+# optimizer = optim.Adam(model.parameters(), lr = 0)
+# scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=150, T_mult=1, eta_max=0.1,  T_up=10, gamma=0.5)

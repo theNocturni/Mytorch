@@ -125,7 +125,7 @@ class segunet_eb7_instance(nn.Module):
     
 class segunet_eb7_group(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(segunet_eb7_instance, self).__init__()        
+        super(segunet_eb7_group, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
