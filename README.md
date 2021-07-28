@@ -1,4 +1,7 @@
 # Mytorch for segmentation
+## pytorch-lighting based segmentation model
+## support sweeps using wandb
+
 # HOW TO USE
 ```python 
   usage: train.py [-h] [--data_dir DATA_DIR] [--data_module DATA_MODULE] [--finetune FINETUNE] [--patch_size PATCH_SIZE]
