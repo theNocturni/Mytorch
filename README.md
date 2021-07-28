@@ -1,6 +1,6 @@
 # Mytorch for segmentation
-## pytorch-lighting based segmentation model
-## support sweeps using wandb
+- pytorch-lighting based segmentation model
+- support sweeps using wandb
 
 # HOW TO USE
 ```python 
