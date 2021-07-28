@@ -3,11 +3,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import monai
+import kornia
 from monai.networks.utils import one_hot
 
-class CrossEntropyLoss(nn.Module):
+class FocalLoss(nn.Module):
     def __init__(self):
-        super(CrossEntropyLoss, self).__init__()
+        super(FocalLoss, self).__init__()
+        self.ce = monai.losses.FocalLoss(to_onehot_y = True, gamma = 2.0)
+        
+    def forward(self,yhat,y):
+        loss = self.ce(yhat,y)
+        return loss 
+    
+class CELoss(nn.Module):
+    def __init__(self):
+        super(CELoss, self).__init__()
         self.ce = nn.CrossEntropyLoss()
         
     def forward(self,yhat,y):
@@ -18,13 +28,63 @@ class CrossEntropyLoss(nn.Module):
 class DiceCELoss(nn.Module):
     def __init__(self):        
         super(DiceCELoss, self).__init__()
-        self.dice = monai.losses.GeneralizedDiceLoss(softmax=False, to_onehot_y=True)
+        self.dice = monai.losses.GeneralizedDiceLoss(to_onehot_y=True,softmax=False)
         self.ce = CrossEntropyLoss()        
         
     def forward(self,yhat,y):
         dice = self.dice(yhat,y)
         ce = self.ce(yhat,y)
         return dice+ce
+    
+class MSELoss(nn.Module):
+    def __init__(self):        
+        super(MSELoss, self).__init__()
+        self.MSE = nn.MSELoss()
+        
+    def forward(self,yhat,y):
+        MSE = self.MSE(yhat,y)
+        return MSE
+    
+class L1Loss(nn.Module):
+    def __init__(self):        
+        super(L1Loss, self).__init__()
+        self.loss = nn.MSELoss()
+        
+    def forward(self,yhat,y):
+        loss = self.loss(yhat,y)
+        return loss
+    
+class SSIMLoss(nn.Module):
+    def __init__(self):        
+        super(SSIMLoss, self).__init__()
+        self.loss = kornia.losses.SSIM(5)
+        
+    def forward(self,yhat,y):
+        loss = self.loss(yhat,y)
+        return loss
+
+class BoundaryCELoss(nn.Module):
+    def __init__(self):        
+        super(BoundaryCELoss, self).__init__()
+        self.ce = CELoss()
+        self.boundary = BoundaryLoss()
+
+    def forward(self,yhat,y):
+        ce = self.ce(yhat,y) 
+        boundary = self.boundary(yhat,y)        
+        return ce+boundary
+
+class BoundaryFocalLoss(nn.Module):
+    def __init__(self):        
+        super(BoundaryFocalLoss, self).__init__()
+        self.ce = monai.losses.FocalLoss(to_onehot_y = True, gamma = 2.0)
+        self.boundary = BoundaryLoss()
+
+    def forward(self,yhat,y):
+        ce = self.ce(yhat,y) 
+        boundary = self.boundary(yhat,y)        
+        return ce+boundary
+
 
 class BoundaryLoss(nn.Module):
     """Boundary Loss proposed in:
@@ -32,7 +92,8 @@ class BoundaryLoss(nn.Module):
     https://arxiv.org/abs/1905.07852
     """
 #     def __init__(self, theta0=3, theta=3, alpha = 0.7, gamma = 0.75): #DRIVE
-    def __init__(self, theta0=3, theta=15, alpha = 0.7, gamma = 0.75):  #AMC
+#     def __init__(self, theta0=3, theta=15, alpha = 0.7, gamma = 0.75):  #AMC 이거로도 잘되었음
+    def __init__(self, theta0=3, theta=15, alpha = 0.7, gamma = 0.75):
         super().__init__()
 
         self.alpha = alpha
@@ -95,30 +156,33 @@ class BoundaryLoss(nn.Module):
         gt_b_ext = gt_b_ext.view(n, c, -1)
         pred_b_ext = pred_b_ext.view(n, c, -1)
 
-# #         original impliment
-#         # Precision, Recall
-#         P = torch.sum(pred_b * gt_b_ext, dim=2) / (torch.sum(pred_b, dim=2) + 1e-7)
-#         R = torch.sum(pred_b_ext * gt_b, dim=2) / (torch.sum(gt_b, dim=2) + 1e-7)
-#         # Boundary F1 Score
-#         BF1 = 2 * P * R / (P + R + 1e-7)
-#         # summing BF1 Score for each class and average over mini-batch
-#         loss = torch.mean(1 - BF1)
-
-        # my impliment
-        # Precision, Recall
-        TP = torch.sum(pred_b * gt_b, dim=2) 
-        TN = torch.sum(pred_b_ext * gt_b_ext, dim=2)
-        FN = torch.sum(pred_b_ext * gt_b, dim=2)
-        FP = torch.sum(pred_b * gt_b_ext, dim=2)
-        ALL = TP+TN+FN+FP
-        
         smooth = 1e-7
-
-        TV = (TP/ALL + smooth)/(TP/ALL + self.alpha*FN/ALL + (1-self.alpha)*FP/ALL + smooth)
-#         loss = torch.mean(1 - TV)
-        loss = torch.mean(torch.pow(1 - TV, self.gamma))
+#         original impliment
+        # Precision, Recall
+        P = torch.sum(pred_b * gt_b_ext, dim=2) / (torch.sum(pred_b, dim=2) + 1e-7)
+        R = torch.sum(pred_b_ext * gt_b, dim=2) / (torch.sum(gt_b, dim=2) + 1e-7)
+        
+        # Boundary F1 Score
+        smooth = 1e-7
+        BF1 = (2 * P * R) / (P + R + smooth)
+#         BF1 = (2 * self.alpha * (1-self.alpha) * P * R + smooth) / (self.alpha*P + (1-self.alpha)*R + smooth)
+        # summing BF1 Score for each class and average over mini-batch
+#         loss = torch.mean(1 - BF1)
+        loss = torch.mean(torch.pow(1 - BF1, self.gamma))
+        
+# #         my impliment (only for 2 class?? 0하고 1일때만 가능... need check nan)      
+#         # Precision, Recall
+#         TP = torch.sum(pred_b * gt_b, dim=2) 
+#         TN = torch.sum(pred_b_ext * gt_b_ext, dim=2)
+#         FN = torch.sum(pred_b_ext * gt_b, dim=2)
+#         FP = torch.sum(pred_b * gt_b_ext, dim=2)
+#         ALL = TP+TN+FN+FP + smooth
+        
+#         TV = (TP/ALL)/(TP/ALL + self.alpha*FN/ALL + (1-self.alpha)*FP/ALL + smooth)
+#         loss = torch.mean(torch.pow(1 - TV, self.gamma))
 
         return loss
+
 
 from sklearn.metrics import *
 import numpy as np
@@ -192,40 +256,3 @@ class clDiceLoss(nn.Module):
 
     def forward(self, pred, gt):
         return soft_cldice_loss(pred,gt).squeeze()
-
-def softmax_T(tensor,T=1):
-    return F.softmax(tensor/T,1)
-
-class BoundaryCELoss(nn.Module):
-    def __init__(self):        
-        super(BoundaryCELoss, self).__init__()
-        self.ce = CrossEntropyLoss()
-        self.boundary = BoundaryLoss()
-
-    def forward(self,yhat,y):
-        ce = self.ce(yhat,y) 
-        boundary = self.boundary(yhat,y)        
-        return ce+boundary
-
-
-class clDiceCELoss(nn.Module):
-    def __init__(self):        
-        super(clDiceCELoss, self).__init__()
-        self.ce = CrossEntropyLoss()
-        self.cldice = clDiceLoss()
-
-    def forward(self,yhat,y):
-        cldice = self.cldice(yhat,y)
-        ce = self.ce(yhat,y)     
-        return ce+cldice
-    
-class clDiceBCELoss(nn.Module):
-    def __init__(self):        
-        super(clDiceBCELoss, self).__init__()
-        self.bce = nn.BCELoss()
-        self.cldice = clDiceLoss()
-
-    def forward(self,yhat,y):
-        cldice = self.cldice(yhat,y)
-        ce = self.ce(yhat,y)     
-        return ce+cldice

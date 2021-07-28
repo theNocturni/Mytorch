@@ -21,26 +21,32 @@ from skimage.morphology import white_tophat,black_tophat
 from skimage.morphology import disk, star, square
 from skimage.filters import *
 
-def ce(img):
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    
-    img_ce1 = img
-    img_ce2 = black_tophat(img,star(11))
-    img_ce3 = hessian(img,sigmas=.1,alpha=0.5,beta=.5,gamma=10)
-    return np.stack([img_ce1/255.,img_ce2/255.,img_ce3],-1)
+import kornia
+from kornia.morphology import *
+from kornia.enhance import *
 
-def clahe(img):
+import matplotlib.pyplot as plt
+
+# def ce(img):
+#     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    
+#     img_ce1 = img
+#     img_ce2 = black_tophat(img,star(11))
+#     img_ce3 = hessian(img,sigmas=.1,alpha=0.5,beta=.5,gamma=10)
+#     return np.stack([img_ce1/255.,img_ce2/255.,img_ce3],-1)
+
+def clahe(img,adaptive_hist_range=False):
+    """
+    input 1 numpy shape image ( H x W x C)
+    """
     temp = np.zeros_like(img)
     for idx in range(temp.shape[-1]):
-#         adaptive_hist_range = True
-        adaptive_hist_range = False
-#         temp[...,idx] = mclahe.mclahe(img[...,idx],kernel_size=(7,7),adaptive_hist_range=adaptive_hist_range)
         temp[...,idx] = mclahe.mclahe(img[...,idx],adaptive_hist_range=adaptive_hist_range)
     return temp
 
 class dataset():
     
-    def __init__(self,data_root='dataset',dataset_type='train',transform=None):
+    def __init__(self,data_root='dataset',dataset_type='train', classes = 'only_vessel',  transform_crop=None, transform=None):
         self.data_root = data_root
         if dataset_type =='train':
             self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
@@ -56,6 +62,71 @@ class dataset():
             self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
             self.x_list = self.x_list[:1]
         
+        self.classes = classes
+        self.transform = transform
+        self.transform_crop = transform_crop
+        print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
+        
+    def __len__(self):
+        return len(self.x_list)
+  
+    def __getitem__(self, idx):
+        fname = self.x_list[idx]
+        x = cv2.imread(self.x_list[idx])
+        y = cv2.imread(self.y_list[idx])
+        x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
+        
+        if self.classes == 'all':
+            pass
+        elif self.classes == 'only_vessel':
+            y[y==1] = 0
+            y[y!=0] = 1
+        elif self.classes == 'only_background':
+            y[y>=1] = 1
+        
+        if len(y.shape)==2:
+            y = np.expand_dims(y,-1)
+            
+        if self.transform:
+            sample = self.transform(image = x, mask = y)
+            x, y= sample['image'], sample['mask']        
+
+        x = x.astype(np.float32)
+        x = clahe(x)
+        
+        if self.transform_crop:
+            sample = self.transform_crop(image = x, mask = y)
+            x, y= sample['image'], sample['mask']        
+        
+        x = np.moveaxis(x,-1,0).astype(np.float32)
+        y = np.moveaxis(y,-1,0).astype(np.float32)
+
+        x = torch.tensor(x)
+        
+        y = torch.tensor(y)
+        y = y[0].unsqueeze(0)
+        
+        return {'x':x,'y':y,'fname':fname}
+
+class dataset_kornia():
+    
+    def __init__(self,data_root='dataset',dataset_type='train', classes = 'only_vessel', transform_crop=None, transform=None):
+        self.data_root = data_root
+        if dataset_type =='train':
+            self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
+            self.y_list = natsorted(glob.glob(data_root+'/y_train/*'))
+        elif dataset_type =='valid':
+            self.x_list = natsorted(glob.glob(data_root+'/x_valid/*'))
+            self.y_list = natsorted(glob.glob(data_root+'/y_valid/*'))
+        elif dataset_type =='test':
+            self.x_list = natsorted(glob.glob(data_root+'/x_test/*'))
+            self.y_list = natsorted(glob.glob(data_root+'/y_test/*'))
+        elif dataset_type =='etest':
+            self.x_list = natsorted(glob.glob(data_root+'/x_etest/*'))
+            self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
+            self.x_list = self.x_list[:1]
+        
+        self.classes = classes
         self.transform = transform
         print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
         
@@ -66,80 +137,60 @@ class dataset():
         fname = self.x_list[idx]
         x = cv2.imread(self.x_list[idx])
         y = cv2.imread(self.y_list[idx])
-        x = x[500:]
-        y = y[500:]
+        x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
+        
+        if self.classes == 'all':
+            pass
+        elif self.classes == 'only_vessel':
+            y[y==1] = 0
+            y[y!=0] = 1
+        elif self.classes == 'only_background':
+            y[y>=1] = 1
+        
         if len(y.shape)==2:
             y = np.expand_dims(y,-1)
-        y[y!=0] = 1
+            
         
         if self.transform:
             sample = self.transform(image = x, mask = y)
-            x, y= sample['image'], sample['mask']
-        
+            x, y= sample['image'], sample['mask']        
+
         x = x.astype(np.float32)
         x = clahe(x)
         
+        if self.transform_crop:
+            sample = self.transform_crop(image = x, mask = y)
+            x, y= sample['image'], sample['mask']        
+        
         x = np.moveaxis(x,-1,0).astype(np.float32)
         y = np.moveaxis(y,-1,0).astype(np.float32)
+
         x = torch.tensor(x)
         
         y = torch.tensor(y)
         y = y[0].unsqueeze(0)
         
-        return {'x':x,'y':y,'fname':fname}
-    
-class dataset_npy():
-    
-    def __init__(self,data_root='dataset',dataset_type='train',transform=None):
-        self.data_root = data_root
-        if dataset_type =='train':
-            self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_train/*'))
-        elif dataset_type =='valid':
-            self.x_list = natsorted(glob.glob(data_root+'/x_valid/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_valid/*'))
-        elif dataset_type =='test':
-            self.x_list = natsorted(glob.glob(data_root+'/x_test/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_test/*'))
-        elif dataset_type =='etest':
-            self.x_list = natsorted(glob.glob(data_root+'/x_etest/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
-            self.x_list = self.x_list[:1]
         
-        self.transform = transform
-        print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
+#         from skimage.morphology import disk, star, square
         
-    def __len__(self):
-        return len(self.x_list)
-  
-    def __getitem__(self, idx):
-        fname = self.x_list[idx]
-        x = cv2.imread(self.x_list[idx])
-        y = np.load(self.y_list[idx])
-        
-        x = x[500:]
-        y = y[500:]
-        if len(y.shape)==2:
-            y = np.expand_dims(y,-1)
-        y[y!=0] = 1
-        
-        if self.transform:
-            sample = self.transform(image = x, mask = y)
-            x, y= sample['image'], sample['mask']
-        
-        x = x.astype(np.float32)
-        x = clahe(x)
-        
-        x = np.moveaxis(x,-1,0).astype(np.float32)
-        y = np.moveaxis(y,-1,0).astype(np.float32)
-        x = torch.tensor(x)
-        
-        y = torch.tensor(y)
+        kernel = torch.ones(13,13)
+#         kernel = torch.tensor(star(13)).float()
+        x = kornia.morphology.bottom_hat(x.unsqueeze(0), kernel)
+        x = kornia.enhance.normalize_min_max(x)
+        x = x.squeeze(0)
         
         return {'x':x,'y':y,'fname':fname}
 
-    
 import albumentations as albu
+def augmentation_crop(patch_size = 128):
+    transform = [
+#         albu.PadIfNeeded(2000, 2048, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True),
+#         albu.CenterCrop(1024, 2048, always_apply=True),
+#         albu.Resize(256, 256, interpolation=cv2.INTER_CUBIC, always_apply=True),
+        albu.RandomCrop(height=patch_size, width=patch_size, always_apply=True),
+    ]
+    return albu.Compose(transform)
+
 def augmentation_train():
     train_transform = [
         albu.HorizontalFlip(p=0.5),
@@ -147,37 +198,37 @@ def augmentation_train():
         
         albu.OneOf([
         albu.RandomBrightnessContrast(brightness_limit=(-0.3, 0.3), contrast_limit=(-0.3, 0.3), brightness_by_max=False, p=0.5),
-        albu.RandomGamma(gamma_limit=(80,120), p=.5),
+        albu.RandomGamma(gamma_limit=(70,120), p=.5),
+        albu.RandomToneCurve(p=.5) 
         ],p=0.5),
                 
-#         albu.OneOf([
-#         albu.RandomFog(fog_coef_lower=0.1,fog_coef_upper=.2,alpha_coef=0.04,p=0.3),
-#         ],p=0.1),
+        albu.OneOf([
+        albu.RandomFog(fog_coef_lower=0.1,fog_coef_upper=.3,alpha_coef=0.04,p=0.3),
+        albu.MotionBlur(p=0.3),
+        albu.MedianBlur(p=0.3),
+        albu.GlassBlur(p=0.3), 
+        ],p=0.1),
         
         albu.OneOf([
-        albu.GaussNoise(var_limit=0.01, mean=0, p=0.5),
+        albu.GaussNoise(var_limit=0.02, mean=0, p=0.5),
         albu.MultiplicativeNoise(multiplier=(0.98, 1.02), p=0.5),
+        albu.ISONoise(p=0.5)
         ],p=0.3),
         
         albu.OneOf([
-#         albu.ElasticTransform(border_mode=cv2.BORDER_CONSTANT,interpolation=cv2.INTER_CUBIC,alpha=1,sigma=50,alpha_affine=50, p=0.5),
-#         albu.GridDistortion(border_mode=cv2.BORDER_CONSTANT,interpolation=cv2.INTER_CUBIC,distort_limit=(-0.3,0.3),num_steps=5, p=0.5),
-#         albu.OpticalDistortion(border_mode=cv2.BORDER_CONSTANT,interpolation=cv2.INTER_CUBIC,distort_limit=(-.05,.05),shift_limit=(-0.05,0.05), p=0.5),
+        albu.ElasticTransform(border_mode=cv2.BORDER_CONSTANT,interpolation=cv2.INTER_CUBIC,alpha=1,sigma=50,alpha_affine=50, p=0.5),
+        albu.GridDistortion(border_mode=cv2.BORDER_CONSTANT,interpolation=cv2.INTER_CUBIC,distort_limit=(-0.3,0.3),num_steps=5, p=0.5),
+        albu.OpticalDistortion(border_mode=cv2.BORDER_CONSTANT,interpolation=cv2.INTER_CUBIC,distort_limit=(-.05,.05),shift_limit=(-0.05,0.05), p=0.5),
         albu.ShiftScaleRotate(border_mode=cv2.BORDER_CONSTANT, interpolation=cv2.INTER_CUBIC, shift_limit=(0.05,0.02), scale_limit=(-.1, 0), rotate_limit=2, p=0.5),   
         ],p=0.5),
-        
-             
-        albu.PadIfNeeded(2000, 2048, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True),
-        albu.CenterCrop(1024, 2048, always_apply=True),
-        albu.Resize(512, 1024, interpolation=cv2.INTER_CUBIC, always_apply=True),
-#         albu.RandomCrop(height=patch_size[0], width=patch_size[1], always_apply=True),
+                     
     ]
     return albu.Compose(train_transform)
 
 def augmentation_valid():
     test_transform = [
-        albu.PadIfNeeded(2000, 2048, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True),
-        albu.CenterCrop(1024, 2048, always_apply=True),
-        albu.Resize(512, 1024, interpolation=cv2.INTER_CUBIC, always_apply=True),
+#         albu.PadIfNeeded(2000, 2048, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True),
+#         albu.CenterCrop(height=patch_size[0], width=patch_size[1], always_apply=True),
+#         albu.Resize(256, 256, interpolation=cv2.INTER_CUBIC, always_apply=True),
     ]
     return albu.Compose(test_transform)
