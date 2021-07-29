@@ -130,6 +130,7 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--data_cropsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
         parser.add_argument("--data_resize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
         parser.add_argument("--data_patchsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch: recommand (A * 2^n)")
+        parser.add_argument("--batch_size", type=int, default=None, help="batch_size, if None, searching will be done")
         parser.add_argument("--lossfn", type=str, default='CE', help="[CELoss, DiceCELoss, MSE, ...], see losses.py")
         parser.add_argument("--net", type=str, default='segunet', help="Networks, see nets.py")
         parser.add_argument("--net_inputch", type=int, default=1, help='dimension of input channel')
@@ -141,7 +142,7 @@ class SegModel(pl.LightningModule):
 
 class MyDataModule(pl.LightningDataModule):
 
-    def __init__(self, data_dir: str = "path/to/dir", data_module ='dataset', classes='all', batch_size: int = 32, data_padsize = None, data_cropsize= None, data_resize= None, data_patchsize = None, num_workers: int = 4):
+    def __init__(self, data_dir: str = "path/to/dir", data_module ='dataset', classes='all', batch_size: int = 1, data_padsize = None, data_cropsize= None, data_resize= None, data_patchsize = None, num_workers: int = 4):
         super().__init__()
         self.data_dir = data_dir
         self.data_module = data_module
@@ -264,8 +265,9 @@ def main(args: Namespace):
                                             logger=wb_logger
                                            )
     
-    myData = MyDataModule.from_argparse_args(args) 
-    trainer.tune(model,datamodule=myData)
+    myData = MyDataModule.from_argparse_args(args)
+    if args.batch_size ==None:
+        trainer.tune(model,datamodule=myData)
     trainer.fit(model,datamodule=myData)
     
     # ------------------------

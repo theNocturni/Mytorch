@@ -48,7 +48,8 @@ def clahe(img,adaptive_hist_range=False):
 # Data Module
 class dataset():
     
-    def __init__(self,data_root='dataset',dataset_type='train', classes = 'only_vessel',  transform_spatial=None, transform=None):
+    def __init__(self,data_root='path/to/data',dataset_type='train', classes = 'only_vessel',  transform_spatial=None, transform=None):
+        
         self.data_root = data_root
         if dataset_type =='train':
             self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
@@ -85,9 +86,11 @@ class dataset():
             y[y!=0] = 1
         elif self.classes == 'only_background':
             y[y>=1] = 1
-        
+            
         if len(y.shape)==2:
             y = np.expand_dims(y,-1)
+        elif len(y.shape)==3 and y.shape[-1]==3:
+            y = np.expand_dims(y[...,0],-1)
             
         if self.transform:
             sample = self.transform(image = x, mask = y)
