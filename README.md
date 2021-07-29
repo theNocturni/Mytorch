@@ -4,7 +4,7 @@
 
 # HOW TO USE
 ```python 
-   usage: train.py [-h] [--data_dir DATA_DIR] [--data_module DATA_MODULE]
+usage: train.py [-h] [--data_dir DATA_DIR] [--data_module DATA_MODULE]
                 [--finetune FINETUNE] [--data_padsize DATA_PADSIZE]
                 [--data_cropsize DATA_CROPSIZE] [--data_resize DATA_RESIZE]
                 [--data_patchsize DATA_PATCHSIZE] [--lossfn LOSSFN]
