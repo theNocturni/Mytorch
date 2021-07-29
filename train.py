@@ -142,11 +142,10 @@ class SegModel(pl.LightningModule):
 
 class MyDataModule(pl.LightningDataModule):
 
-    def __init__(self, data_dir: str = "path/to/dir", data_module ='dataset', classes='all', batch_size: int = 1, data_padsize = None, data_cropsize= None, data_resize= None, data_patchsize = None, num_workers: int = 4):
+    def __init__(self, data_dir: str = "path/to/dir", data_module ='dataset', batch_size: int = 1, data_padsize = None, data_cropsize= None, data_resize= None, data_patchsize = None, num_workers: int = 4):
         super().__init__()
         self.data_dir = data_dir
         self.data_module = data_module
-        self.classes = classes
         self.batch_size = batch_size 
         self.data_padsize = data_padsize
         self.data_cropsize = data_cropsize
@@ -157,20 +156,18 @@ class MyDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         
         fn_call = getattr(datasets, self.data_module)
-#         classes = 'only_background'
-        classes = 'only_vessel'
-        self.trainset = fn_call(self.data_dir, 'train', classes = classes, 
+        self.trainset = fn_call(self.data_dir, 'train',
                                 transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize,
                                                                                  data_patchsize = self.data_patchsize,), 
                                 transform=datasets.augmentation_train())
-        self.validset = fn_call(self.data_dir, 'valid', classes = classes,
+        self.validset = fn_call(self.data_dir, 'valid',
                                 transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize), 
                                 transform=datasets.augmentation_valid())
-        self.testset = fn_call(self.data_dir, 'test', classes = classes,
+        self.testset = fn_call(self.data_dir, 'test',
                                 transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize), 
@@ -200,7 +197,7 @@ def wb_mask(x, yhat, y, samples=2):
     y = torchvision.utils.make_grid(y[:samples].cpu().detach()).permute(1,2,0)
     yhat = torchvision.utils.make_grid(torch.argmax(yhat[:samples],1).unsqueeze(1).cpu()).permute(1,2,0) if yhat.shape[1]>1 else \
            torchvision.utils.make_grid(yhat[:samples].round().cpu()).permute(1,2,0)
-        
+
     x = (x*255).numpy().astype(np.uint8)        # 0 ~ 255
     yhat = yhat[...,0].numpy().astype(np.uint8) # 0 ~ n_class 
     y = y[...,0].numpy().astype(np.uint8)       # 0 ~ n_class

@@ -48,7 +48,7 @@ def clahe(img,adaptive_hist_range=False):
 # Data Module
 class dataset():
     
-    def __init__(self,data_root='path/to/data',dataset_type='train', classes = 'only_vessel',  transform_spatial=None, transform=None):
+    def __init__(self,data_root='path/to/data',dataset_type='train', transform_spatial=None, transform=None):
         
         self.data_root = data_root
         if dataset_type =='train':
@@ -65,7 +65,6 @@ class dataset():
             self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
             self.x_list = self.x_list[:1]
         
-        self.classes = classes
         self.transform = transform
         self.transform_spatial = transform_spatial
         print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
@@ -78,15 +77,7 @@ class dataset():
         x = cv2.imread(self.x_list[idx])
         y = cv2.imread(self.y_list[idx])
         x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
-        
-        if self.classes == 'all':
-            pass
-        elif self.classes == 'only_vessel':
-            y[y==1] = 0
-            y[y!=0] = 1
-        elif self.classes == 'only_background':
-            y[y>=1] = 1
-            
+
         if len(y.shape)==2:
             y = np.expand_dims(y,-1)
         elif len(y.shape)==3 and y.shape[-1]==3:
@@ -115,7 +106,7 @@ class dataset():
 
 class dataset_kornia():
     
-    def __init__(self,data_root='dataset',dataset_type='train', classes = 'only_vessel', transform_crop=None, transform=None):
+    def __init__(self,data_root='dataset',dataset_type='train', transform_crop=None, transform=None):
         self.data_root = data_root
         if dataset_type =='train':
             self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
@@ -130,8 +121,7 @@ class dataset_kornia():
             self.x_list = natsorted(glob.glob(data_root+'/x_etest/*'))
             self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
             self.x_list = self.x_list[:1]
-        
-        self.classes = classes
+            
         self.transform = transform
         print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
         
@@ -143,14 +133,6 @@ class dataset_kornia():
         x = cv2.imread(self.x_list[idx])
         y = cv2.imread(self.y_list[idx])
         x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
-        
-        if self.classes == 'all':
-            pass
-        elif self.classes == 'only_vessel':
-            y[y==1] = 0
-            y[y!=0] = 1
-        elif self.classes == 'only_background':
-            y[y>=1] = 1
         
         if len(y.shape)==2:
             y = np.expand_dims(y,-1)
