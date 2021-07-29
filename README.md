@@ -20,17 +20,13 @@ optional arguments:
                         Data Module, see datasets.py
   --finetune FINETUNE   Set Adam with lr=1e-4
   --data_padsize DATA_PADSIZE
-                        input like this (height_width) : pad - crop - resize -
-                        patch
+                        input like this (height_width) : pad - crop - resize - patch
   --data_cropsize DATA_CROPSIZE
-                        input like this (height_width) : pad - crop - resize -
-                        patch
+                        input like this (height_width) : pad - crop - resize - patch
   --data_resize DATA_RESIZE
-                        input like this (height_width) : pad - crop - resize -
-                        patch
+                        input like this (height_width) : pad - crop - resize - patch
   --data_patchsize DATA_PATCHSIZE
-                        input like this (height_width) : pad - crop - resize -
-                        patch: recommand (A * 2^n)
+                        input like this (height_width) : pad - crop - resize - patch: recommand (A * 2^n)
   --lossfn LOSSFN       [CELoss, DiceCELoss, MSE, ...], see losses.py
   --net NET             Networks, see nets.py
   --net_inputch NET_INPUTCH
