@@ -26,6 +26,7 @@ from kornia.morphology import *
 from kornia.enhance import *
 
 import matplotlib.pyplot as plt
+import albumentations as albu
 
 # def ce(img):
 #     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -44,9 +45,10 @@ def clahe(img,adaptive_hist_range=False):
         temp[...,idx] = mclahe.mclahe(img[...,idx],adaptive_hist_range=adaptive_hist_range)
     return temp
 
+# Data Module
 class dataset():
     
-    def __init__(self,data_root='dataset',dataset_type='train', classes = 'only_vessel',  transform_crop=None, transform=None):
+    def __init__(self,data_root='dataset',dataset_type='train', classes = 'only_vessel',  transform_spatial=None, transform=None):
         self.data_root = data_root
         if dataset_type =='train':
             self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
@@ -64,7 +66,7 @@ class dataset():
         
         self.classes = classes
         self.transform = transform
-        self.transform_crop = transform_crop
+        self.transform_spatial = transform_spatial
         print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
         
     def __len__(self):
@@ -94,8 +96,8 @@ class dataset():
         x = x.astype(np.float32)
         x = clahe(x)
         
-        if self.transform_crop:
-            sample = self.transform_crop(image = x, mask = y)
+        if self.transform_spatial:
+            sample = self.transform_spatial(image = x, mask = y)
             x, y= sample['image'], sample['mask']        
         
         x = np.moveaxis(x,-1,0).astype(np.float32)
@@ -170,9 +172,6 @@ class dataset_kornia():
         y = torch.tensor(y)
         y = y[0].unsqueeze(0)
         
-        
-#         from skimage.morphology import disk, star, square
-        
         kernel = torch.ones(13,13)
 #         kernel = torch.tensor(star(13)).float()
         x = kornia.morphology.bottom_hat(x.unsqueeze(0), kernel)
@@ -181,14 +180,30 @@ class dataset_kornia():
         
         return {'x':x,'y':y,'fname':fname}
 
-import albumentations as albu
-def augmentation_crop(patch_size = 128):
-    transform = [
-#         albu.PadIfNeeded(2000, 2048, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True),
-#         albu.CenterCrop(1024, 2048, always_apply=True),
-#         albu.Resize(256, 256, interpolation=cv2.INTER_CUBIC, always_apply=True),
-        albu.RandomCrop(height=patch_size, width=patch_size, always_apply=True),
-    ]
+# augmentation
+def augmentation_image_size(data_padsize=None, data_cropsize=None, data_resize=None, data_patchsize = None):
+    """
+    sizes should be in 
+    """
+    transform = list()
+    
+    if data_padsize:
+        data_padsize_h = int(data_padsize.split('_')[0])
+        data_padsize_w = int(data_padsize.split('_')[1])
+        transform.append(albu.PadIfNeeded(data_padsize_h, data_padsize_w, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
+    if data_cropsize:
+        data_cropsize_h = int(data_cropsize.split('_')[0])
+        data_cropsize_w = int(data_cropsize.split('_')[1])
+        transform.append(albu.CenterCrop(data_cropsize_h, data_cropsize_w, always_apply=True))
+    if data_resize:
+        data_resize_h = int(data_resize.split('_')[0])
+        data_resize_w = int(data_resize.split('_')[1])
+        transform.append(albu.Resize(data_resize_h, data_resize_w, interpolation=cv2.INTER_CUBIC, always_apply=True))
+    if data_patchsize:
+        data_patchsize_h = int(data_patchsize.split('_')[0])
+        data_patchsize_w = int(data_patchsize.split('_')[1])
+        transform.append(albu.RandomCrop(height=data_patchsize_h, width=data_patchsize_w, always_apply=True))
+
     return albu.Compose(transform)
 
 def augmentation_train():
@@ -199,20 +214,20 @@ def augmentation_train():
         albu.OneOf([
         albu.RandomBrightnessContrast(brightness_limit=(-0.3, 0.3), contrast_limit=(-0.3, 0.3), brightness_by_max=False, p=0.5),
         albu.RandomGamma(gamma_limit=(70,120), p=.5),
-        albu.RandomToneCurve(p=.5) 
+        albu.RandomToneCurve(scale=0.2,p=.5) 
         ],p=0.5),
                 
         albu.OneOf([
-        albu.RandomFog(fog_coef_lower=0.1,fog_coef_upper=.3,alpha_coef=0.04,p=0.3),
-        albu.MotionBlur(p=0.3),
-        albu.MedianBlur(p=0.3),
-        albu.GlassBlur(p=0.3), 
+        albu.RandomFog(fog_coef_lower=0.1, fog_coef_upper=.3, alpha_coef=0.04, p=0.3),
+        albu.MotionBlur(blur_limit=3, p=0.3),
+        albu.MedianBlur(blur_limit=3, p=0.3),
+        albu.GlassBlur(sigma=0.1, max_delta=2, p=0.3), 
         ],p=0.1),
         
         albu.OneOf([
         albu.GaussNoise(var_limit=0.02, mean=0, p=0.5),
         albu.MultiplicativeNoise(multiplier=(0.98, 1.02), p=0.5),
-        albu.ISONoise(p=0.5)
+        albu.ISONoise(color_shift=(0.01, 0.03),intensity=(0.1, 0.3),p=0.5),
         ],p=0.3),
         
         albu.OneOf([
@@ -227,8 +242,6 @@ def augmentation_train():
 
 def augmentation_valid():
     test_transform = [
-#         albu.PadIfNeeded(2000, 2048, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True),
-#         albu.CenterCrop(height=patch_size[0], width=patch_size[1], always_apply=True),
-#         albu.Resize(256, 256, interpolation=cv2.INTER_CUBIC, always_apply=True),
+        
     ]
     return albu.Compose(test_transform)

@@ -78,9 +78,9 @@ def bn2group(module):
     del module
     return module_output
 
-class segunet_eb7_batch(nn.Module):
+class manet_eb7_batch(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(segunet_eb7_batch, self).__init__()        
+        super(manet_eb7_batch, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
@@ -95,16 +95,15 @@ class segunet_eb7_batch(nn.Module):
                         activation=None,
                         aux_params=None)
     
-#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_.pt')
-#         self.net.load_state_dict(weight['net_state_dict'])
-#         print('success')
-#         self.net = bn2instance(self.net)
+        weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+        self.net.load_state_dict(weight['net_state_dict'])
+
     def forward(self,x):
         return self.net(x)    
 
-class segunet_eb7_instance(nn.Module):
+class manet_eb7_instance(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(segunet_eb7_instance, self).__init__()        
+        super(manet_eb7_instance, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
@@ -118,14 +117,17 @@ class segunet_eb7_instance(nn.Module):
                         classes=self.net_outputch,
                         activation=None,
                         aux_params=None)
-    
+
+        weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+        self.net.load_state_dict(weight['net_state_dict'])
+
         self.net = bn2instance(self.net)
     def forward(self,x):
         return self.net(x)    
     
-class segunet_eb7_group(nn.Module):
+class manet_eb7_group(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(segunet_eb7_group, self).__init__()        
+        super(manet_eb7_group, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
@@ -139,10 +141,63 @@ class segunet_eb7_group(nn.Module):
                         classes=self.net_outputch,
                         activation=None,
                         aux_params=None)
-    
+
+        weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+        self.net.load_state_dict(weight['net_state_dict'])
+
         self.net = bn2group(self.net)
     def forward(self,x):
         return self.net(x)        
+    
+class unet_eb7_batch(nn.Module):
+    def __init__(self, net_inputch=3, net_outputch=2):
+        super(unet_eb7_batch, self).__init__()        
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch  
+        self.net = smp.Unet(
+                        encoder_name='timm-efficientnet-b7',
+                        decoder_use_batchnorm = True,
+                        decoder_attention_type = 'scse',
+                        encoder_depth=5,
+                        in_channels=self.net_inputch, 
+                        classes=self.net_outputch,)
+    def forward(self,x):
+        return self.net(x)    
+
+class unet_eb7_instance(nn.Module):
+    def __init__(self, net_inputch=3, net_outputch=2):
+        super(unet_eb7_instance, self).__init__()        
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch  
+        self.net = smp.Unet(
+                        encoder_name='timm-efficientnet-b7',
+                        decoder_use_batchnorm = True,
+                        decoder_attention_type = 'scse',
+                        encoder_depth=5,
+                        in_channels=self.net_inputch, 
+                        classes=self.net_outputch,)
+        self.net = bn2instance(self.net)
+
+    def forward(self,x):
+        return self.net(x)    
+
+class unet_eb7_group(nn.Module):
+    def __init__(self, net_inputch=3, net_outputch=2):
+        super(unet_eb7_group, self).__init__()        
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch  
+        self.net = smp.Unet(
+                        encoder_name='timm-efficientnet-b7',
+                        decoder_use_batchnorm = True,
+                        decoder_attention_type = 'scse',
+                        encoder_depth=5,
+                        in_channels=self.net_inputch, 
+                        classes=self.net_outputch,)
+        self.net = bn2group(self.net)
+
+    def forward(self,x):
+        return self.net(x)    
+    
     
 class segunet_elb4(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
@@ -165,17 +220,16 @@ class segunet_elb4(nn.Module):
         return self.net(x)    
     
 class segresnet(nn.Module):
-    def __init__(self,in_channel=1,out_channel=1):
+    def __init__(self,net_inputch=1,net_outputch=1):
         super(segresnet, self).__init__()        
-        self.in_channel = in_channel
-        self.out_channel = out_channel
-        self.net = monai.networks.nets.SegResNet(2,8,in_channels=self.in_channel, out_channels=self.out_channel)#, act="LeaklyRelu",norm='Instance')        
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch
+        self.net = monai.networks.nets.SegResNet(2,8,in_channels=self.net_inputch, out_channels=self.net_outputch)
         self.net = bn2instance(self.net)
 
     def forward(self,x):
         return self.net(x)
     
-        
 # wavelet Unet
 import pywt
 import torch
@@ -213,91 +267,75 @@ def iwt(vres):
         res[:,i:i+1,:,:] = temp
     return res
 
-class Waveletnet(nn.Module):
-    def __init__(self,in_channel=3,out_channel=3,num_c=16,ws=False):
-        super(Waveletnet, self).__init__()
-#         self.num=1
+class waveletunet_batch(nn.Module):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=16):
+        super(waveletunet_batch, self).__init__()
         c = num_c
-
-#         groupnorm_parameter = 16
-#         self.bn = nn.BatchNorm2d(320) 
-#         self.gn1 = nn.GroupNorm(int(c/groupnorm_parameter),c)
-#         self.gn2 = nn.GroupNorm(int(4*c/groupnorm_parameter),4*c)
-#         self.gn3 = nn.GroupNorm(int(16*c/groupnorm_parameter),16*c)
-#         self.gn4 = nn.GroupNorm(int(64*c/groupnorm_parameter),64*c)
-        self.norm1 = nn.InstanceNorm2d(c) 
-        self.norm2 = nn.InstanceNorm2d(4*c) 
-        self.norm3 = nn.InstanceNorm2d(16*c) 
-        self.norm4 = nn.InstanceNorm2d(64*c) 
-
-        if ws == False:
-            self.conv1 = nn.Conv2d(4*in_channel,c,3, 1,padding=1)
-            self.conv2 = nn.Conv2d(4*c,4*c,3, 1,padding=1)        
-            self.conv3 = nn.Conv2d(16*c,16*c,3, 1,padding=1)  
-            self.conv4 = nn.Conv2d(64*c,64*c,3, 1,padding=1)
-
-            self.convd1 = nn.Conv2d(c,12,3, 1,padding=1)
-            self.convd2 = nn.Conv2d(2*c,c,3, 1,padding=1) 
-            self.convd3 = nn.Conv2d(8*c,4*c,3, 1,padding=1)        
-            self.convd4 = nn.Conv2d(32*c,16*c,out_channel, 1,padding=1)  
-        else:
-            self.conv1 = Conv2d(4*in_channel,c,3, 1,padding=1)
-            self.conv2 = Conv2d(4*c,4*c,3, 1,padding=1)        
-            self.conv3 = Conv2d(16*c,16*c,3, 1,padding=1)  
-            self.conv4 = Conv2d(64*c,64*c,3, 1,padding=1)
-            self.convd1 = Conv2d(c,12,3, 1,padding=1)
-            self.convd2 = Conv2d(2*c,c,3, 1,padding=1) 
-            self.convd3 = Conv2d(8*c,4*c,3, 1,padding=1)        
-            self.convd4 = Conv2d(32*c,16*c,3, 1,padding=1)  
-        self.relu = nn.LeakyReLU(0.2)
         
-        self.c = torch.nn.Conv2d(3,out_channel,1,padding=0, bias=False)
+        self.norm0 = nn.BatchNorm2d(4*net_outputch) 
+        self.norm1 = nn.BatchNorm2d(c) 
+        self.norm2 = nn.BatchNorm2d(4*c) 
+        self.norm3 = nn.BatchNorm2d(16*c) 
+        self.norm4 = nn.BatchNorm2d(64*c) 
+
+        self.conv1 = nn.Conv2d(4*net_inputch,c,3,1,padding=1)
+        self.conv2 = nn.Conv2d(4*c,4*c,3,1,padding=1)        
+        self.conv3 = nn.Conv2d(16*c,16*c,3,1,padding=1)  
+        self.conv4 = nn.Conv2d(64*c,64*c,3,1,padding=1)
+
+        self.convd1 = nn.Conv2d(c,4*net_outputch,3,1,padding=1)
+        self.convd2 = nn.Conv2d(2*c,c,3,1,padding=1) 
+        self.convd3 = nn.Conv2d(8*c,4*c,3,1,padding=1)        
+        self.convd4 = nn.Conv2d(32*c,16*c,3,1,padding=1)  
+            
+        self.relu = nn.LeakyReLU(0.2)        
+        self.convd_last = torch.nn.Conv2d(net_outputch,net_outputch,1,padding=0, bias=False)
 
     def forward(self, x):
         
         w1=wt(x)
-        c1=self.relu(self.conv1(w1))
+        c1=self.relu(self.norm1(self.conv1(w1)))
                 
         w2=wt(c1)
-        c2=self.relu(self.conv2(w2))
+        c2=self.relu(self.norm2(self.conv2(w2)))
         
         w3=wt(c2)
-        c3=self.relu(self.conv3(w3))
+        c3=self.relu(self.norm3(self.conv3(w3)))
         
         w4=wt(c3)
-        c4=self.relu(self.conv4(w4))
-        c5=self.relu(self.conv4(c4))
-        c6=(self.conv4(c5))
+        c4=self.relu(self.norm4(self.conv4(w4)))
+        c5=self.relu(self.norm4(self.conv4(c4)))
+        c6=self.norm4(self.conv4(c5))
         ic4=self.relu(c6+w4)
 
         iw4=iwt(ic4)
         iw4=torch.cat([c3,iw4],1)
-        ic3=self.relu(self.convd4(iw4))
+        ic3=self.relu(self.norm3(self.convd4(iw4)))
         
         iw3=iwt(ic3)
         iw3=torch.cat([c2,iw3],1)
-        ic2=self.relu(self.convd3(iw3))
+        ic2=self.relu(self.norm2(self.convd3(iw3)))
         
         iw2=iwt(ic2)
         iw2=torch.cat([c1,iw2],1)
-        ic1=self.relu(self.convd2(iw2))
-        iw1=self.relu(self.convd1(ic1))
+        ic1=self.relu(self.norm1(self.convd2(iw2)))
+        iw1=self.relu(self.norm0(self.convd1(ic1)))
 
         y=iwt(iw1)
-        y = self.c(y)
+        y = self.convd_last(y)
         return y
 
-class ACT(nn.Module):
-    def __init__(self,in_channel=1,out_channel=1,num_c=16,ws=False):
-        super(ACT, self).__init__()
-        self.net = Waveletnet(in_channel=in_channel,num_c=num_c,ws=ws)
-        self.c = torch.nn.Conv2d(3,out_channel,1,padding=0, bias=False)
+# class ACT(nn.Module):
+#     def __init__(self,in_channel=1,out_channel=1,num_c=16,ws=False):
+#         super(ACT, self).__init__()
+#         self.net = Waveletnet(in_channel=in_channel,num_c=num_c,ws=ws)
+#         self.c = torch.nn.Conv2d(3,out_channel,1,padding=0, bias=False)
       
-    def forward(self, x):
-        x = self.net(x)
-        x = self.c(x)
+#     def forward(self, x):
+#         x = self.net(x)
+#         x = self.c(x)
     
-        return x
+#         return x
     
 # weight standardization
     
