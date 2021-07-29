@@ -164,8 +164,16 @@ class MyDataModule(pl.LightningDataModule):
                                                                                  data_resize = self.data_resize,
                                                                                  data_patchsize = self.data_patchsize,), 
                                 transform=datasets.augmentation_train())
-        self.validset = fn_call(self.data_dir, 'valid', classes = classes, transform=datasets.augmentation_valid())
-        self.testset = fn_call(self.data_dir, 'test', classes = classes, transform=datasets.augmentation_valid())
+        self.validset = fn_call(self.data_dir, 'valid', classes = classes,
+                                transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
+                                                                                 data_cropsize = self.data_cropsize,
+                                                                                 data_resize = self.data_resize), 
+                                transform=datasets.augmentation_valid())
+        self.testset = fn_call(self.data_dir, 'test', classes = classes,
+                                transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
+                                                                                 data_cropsize = self.data_cropsize,
+                                                                                 data_resize = self.data_resize), 
+                                transform=datasets.augmentation_valid())
         
     def train_dataloader(self):
         return DataLoader(self.trainset, batch_size=self.batch_size, num_workers=self.num_workers)
