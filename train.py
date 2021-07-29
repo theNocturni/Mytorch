@@ -159,7 +159,7 @@ class MyDataModule(pl.LightningDataModule):
 #         classes = 'only_background'
         classes = 'only_vessel'
         self.trainset = fn_call(self.data_dir, 'train', classes = classes, 
-                                transform_spatial =datasets.augmentation_image_size(data_padsize = self.data_padsize,
+                                transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize,
                                                                                  data_patchsize = self.data_patchsize,), 

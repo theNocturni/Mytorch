@@ -95,8 +95,8 @@ class manet_eb7_batch(nn.Module):
                         activation=None,
                         aux_params=None)
     
-        weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
-        self.net.load_state_dict(weight['net_state_dict'])
+#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+#         self.net.load_state_dict(weight['net_state_dict'])
 
     def forward(self,x):
         return self.net(x)    
@@ -118,8 +118,8 @@ class manet_eb7_instance(nn.Module):
                         activation=None,
                         aux_params=None)
 
-        weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
-        self.net.load_state_dict(weight['net_state_dict'])
+#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+#         self.net.load_state_dict(weight['net_state_dict'])
 
         self.net = bn2instance(self.net)
     def forward(self,x):
@@ -142,8 +142,8 @@ class manet_eb7_group(nn.Module):
                         activation=None,
                         aux_params=None)
 
-        weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
-        self.net.load_state_dict(weight['net_state_dict'])
+#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+#         self.net.load_state_dict(weight['net_state_dict'])
 
         self.net = bn2group(self.net)
     def forward(self,x):

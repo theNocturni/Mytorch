@@ -181,7 +181,7 @@ class dataset_kornia():
         return {'x':x,'y':y,'fname':fname}
 
 # augmentation
-def augmentation_image_size(data_padsize=None, data_cropsize=None, data_resize=None, data_patchsize = None):
+def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=None, data_patchsize = None):
     """
     sizes should be in 
     """
