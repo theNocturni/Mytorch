@@ -16,8 +16,10 @@ openpyxl
 matplotlib
 seaborn
 tensorboardX
-torch
 monai
 wandb
 torchsummary
 https://github.com/VincentStimper/mclahe/archive/numpy.zip
+pytorch_lightning == 1.3.8
+kornia
+natsort
