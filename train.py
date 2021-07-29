@@ -13,7 +13,6 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 
-import segmentation_models_pytorch as smp
 import pytorch_lightning as pl
 
 import monai
@@ -24,9 +23,9 @@ import utils
 import wandb
 import torchmetrics
 
-import kornia
-import cv2
-import matplotlib.pyplot as plt
+# import kornia
+# import cv2
+# import matplotlib.pyplot as plt
 
 from monai.inferers import sliding_window_inference
 
@@ -127,7 +126,6 @@ class SegModel(pl.LightningModule):
         parser = ArgumentParser(parents=[parent_parser])
         parser.add_argument("--data_dir", type=str, help="path where dataset is stored, subfolders name should be x_train, y_train")
         parser.add_argument("--data_module", type=str,default='dataset', help="Data Module, see datasets.py")
-        parser.add_argument("--finetune", type=str, default='False', help="Set Adam with lr=1e-4")        
         parser.add_argument("--data_padsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
         parser.add_argument("--data_cropsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
         parser.add_argument("--data_resize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
@@ -137,6 +135,7 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--net_inputch", type=int, default=1, help='dimension of input channel')
         parser.add_argument("--net_outputch", type=int, default=2, help='dimension of output channel')        
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
+        parser.add_argument("--finetune", type=str, default='False', help="Set Adam with lr=1e-4")        
         parser.add_argument("--experiment_name", type=str, default=None, help='Postfix name of experiment')         
         return parser
 
@@ -193,9 +192,9 @@ def wb_mask(x, yhat, y, samples=2):
     yhat = torchvision.utils.make_grid(torch.argmax(yhat[:samples],1).unsqueeze(1).cpu()).permute(1,2,0) if yhat.shape[1]>1 else \
            torchvision.utils.make_grid(yhat[:samples].round().cpu()).permute(1,2,0)
         
-    x = (x*255).numpy().astype(np.uint8) # 0 ~ 255
+    x = (x*255).numpy().astype(np.uint8)        # 0 ~ 255
     yhat = yhat[...,0].numpy().astype(np.uint8) # 0 ~ n_class 
-    y = y[...,0].numpy().astype(np.uint8) # 0 ~ n_class
+    y = y[...,0].numpy().astype(np.uint8)       # 0 ~ n_class
     
     return wandb.Image(x, masks={
     "prediction" : {"mask_data" : yhat, "class_labels" : labels()},
@@ -236,7 +235,6 @@ def main(args: Namespace):
     # ------------------------
     # 3 INIT TRAINER
     # ------------------------
-    
     trainer = pl.Trainer.from_argparse_args(args,
 #                                             accelerator=accelerator,
                                             amp_backend='native',
@@ -245,7 +243,9 @@ def main(args: Namespace):
                                             callbacks=[checkpoint_callback,
                                                        LearningRateMonitor(),
                                                        StochasticWeightAveraging(),
-                                                       EarlyStopping(monitor='loss_val',patience=300)],
+#                                                        EarlyStopping(monitor='loss_val',patience=200),
+                                                       EarlyStopping(monitor='metric_val',patience=200),
+                                                      ],
                                             auto_scale_batch_size='power',
                                             weights_summary='top', 
                                             log_gpu_memory='min_max',
@@ -255,14 +255,14 @@ def main(args: Namespace):
                                             stochastic_weight_avg=True,
                                             logger=wb_logger
                                            )
-    # ------------------------
-    # 5 START TRAINING
-    # ------------------------
+    
     myData = MyDataModule.from_argparse_args(args) 
     trainer.tune(model,datamodule=myData)
     trainer.fit(model,datamodule=myData)
     
-
+    # ------------------------
+    # 5 START TRAINING
+    # ------------------------
 if __name__ == '__main__':
     
     parser = ArgumentParser(add_help=False)
