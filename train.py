@@ -91,7 +91,6 @@ class SegModel(pl.LightningModule):
         
 #         yhat = self(x) # changed to sliding window method
         roi_size = self.data_patchsize if isinstance(self.data_patchsize, int) else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1])) 
-        print('roi_size sliding',roi_size)
         yhat = sliding_window_inference(inputs=x,roi_size=roi_size,sw_batch_size=4,predictor=self.net,overlap=0.5,mode='constant')
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
@@ -240,7 +239,7 @@ def main(args: Namespace):
     wandb.init(name=args.experiment_name)
     wandb.run.name = args.experiment_name + wandb.run.id
     wandb.config.update(args, allow_val_change=True)
-    wandb.watch(net, log="all", log_freq=100, log_graph=True)
+    wandb.watch(model, log="all", log_freq=100, log_graph=True)
     
     Checkpoint_callback = ModelCheckpoint(verbose=True, 
                                           monitor='loss_val',
