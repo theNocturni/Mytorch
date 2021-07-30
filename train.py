@@ -103,15 +103,16 @@ class SegModel(pl.LightningModule):
 
     def configure_optimizers(self):
         """
-        mode : finetune --> Adam with lr = 1e-4
-        mode : CosineAnnealingWarmup (default) --> SGD with varying lr
+        mode : lr is given --> Adam with lr with given lr
+        mode : lr is not given --> CosineAnnealingWarmup (default), SGD with varying lr
         """
         if self.lr != 0:
-            optimizer = torch.optim.Adam(self.net.parameters(), lr=1e-4)
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)    
+            optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=50, min_lr=1e-6)    
         else:
-            optimizer = torch.optim.SGD(self.net.parameters(), lr=1e-7, momentum=0.9)
-            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=50, T_mult=2, eta_max=0.01, T_up=10, gamma=0.5)
+            optimizer = torch.optim.SGD(self.net.parameters(), lr=1e-7, weight_decay = 0.0005, momentum=0.9)
+#             optimizer = torch.optim.RMSprop(self.net.parameters(), lr=1e-7, momentum=0.9)
+            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
         return {'optimizer': optimizer,
                 'lr_scheduler': {'scheduler': scheduler,
                                  'monitor': 'loss_val'}
@@ -132,7 +133,7 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--net_inputch", type=int, default=1, help='dimension of input channel')
         parser.add_argument("--net_outputch", type=int, default=2, help='dimension of output channel')        
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
-        parser.add_argument("--lr", type=float, default=0, help="Set learning rate of Adam optimzer. Default lr=1e-4")        
+        parser.add_argument("--lr", type=float, default=0, help="Set learning rate of Adam optimzer.")        
         parser.add_argument("--experiment_name", type=str, default=None, help='Postfix name of experiment')         
         return parser
 
@@ -229,8 +230,8 @@ def main(args: Namespace):
     from pytorch_lightning import loggers as pl_loggers
     from pytorch_lightning.callbacks import ModelCheckpoint,LearningRateMonitor, StochasticWeightAveraging, LambdaCallback, EarlyStopping
     
-    args.experiment_name = "Net{}_Netinputch{}_Netoutputch{}_Loss{}_Precision{}_Patchsize{}_Prefix{}_"\
-    .format(args.net, args.net_inputch, args.net_outputch, args.lossfn, args.precision,args.data_patchsize,args.experiment_name)
+    args.experiment_name = "Net{}_Netinputch{}_Netoutputch{}_Loss{}_Lr{}_Precision{}_Patchsize{}_Prefix{}_"\
+    .format(args.net, args.net_inputch, args.net_outputch, args.lossfn, args.lr, args.precision,args.data_patchsize,args.experiment_name)
     print('Current Experiment:',args.experiment_name)
     
     wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name)
