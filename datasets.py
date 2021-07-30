@@ -183,7 +183,7 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
     if data_cropsize:
         if len(data_cropsize.split('_'))==1:
             data_cropsize = int(data_cropsize)
-            transform.append(albu.PadIfNeeded(data_cropsize, data_cropsize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
+            transform.append(albu.CenterCrop(data_cropsize, data_cropsize, always_apply=True))
         else:
             data_cropsize_h = int(data_cropsize.split('_')[0])
             data_cropsize_w = int(data_cropsize.split('_')[1])
@@ -191,7 +191,7 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
     if data_resize:
         if len(data_resize.split('_'))==1:
             data_resize = int(data_resize)
-            transform.append(albu.PadIfNeeded(data_resize, data_resize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
+            transform.append(albu.Resize(data_resize, data_resize, interpolation=cv2.INTER_CUBIC, always_apply=True))
         else:
             data_resize_h = int(data_resize.split('_')[0])
             data_resize_w = int(data_resize.split('_')[1])
@@ -199,11 +199,13 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
     if data_patchsize:
         if len(data_patchsize.split('_'))==1:
             data_patchsize = int(data_patchsize)
-            transform.append(albu.PadIfNeeded(data_patchsize, data_patchsize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
+            transform.append(albu.RandomCrop(data_patchsize, data_patchsize, always_apply=True))
         else:
             data_patchsize_h = int(data_patchsize.split('_')[0])
             data_patchsize_w = int(data_patchsize.split('_')[1])
             transform.append(albu.RandomCrop(height=data_patchsize_h, width=data_patchsize_w, always_apply=True))
+            
+    print(transform)
 
     return albu.Compose(transform)
 

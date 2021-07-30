@@ -90,7 +90,8 @@ class SegModel(pl.LightningModule):
         x,y  = batch['x'], batch['y']
         
 #         yhat = self(x) # changed to sliding window method
-        roi_size = int(self.data_patchsize) if len(self.data_patchsize.split('_'))==1 else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1])) 
+        roi_size = int(self.data_patchsize) if len(self.data_patchsize.split('_'))==1 else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1]))
+        print('roi_size:',roi_size)
         yhat = sliding_window_inference(inputs=x,roi_size=roi_size,sw_batch_size=4,predictor=self.net,overlap=0.5,mode='constant')
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
