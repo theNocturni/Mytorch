@@ -342,59 +342,59 @@ class waveletunet_batch(nn.Module):
         self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
 
     def forward(self,x):
-        print('x',x.shape)
+#         print('x',x.shape)
 
         # encoding path
         x1 = self.Conv1(x)
-        print('x1',x1.shape)
+#         print('x1',x1.shape)
 
         x2 = wt(x1)
 #         x2 = self.Maxpool(x1)
         x2 = self.Conv2(x2)
-        print('x2',x2.shape)
+#         print('x2',x2.shape)
 
         x3 = wt(x2)
 #         x3 = self.Maxpool(x2)
         x3 = self.Conv3(x3)
-        print('x3',x3.shape)
+#         print('x3',x3.shape)
 
         x4 = wt(x3)
 #         x4 = self.Maxpool(x3)
         x4 = self.Conv4(x4)
-        print('x4',x4.shape)
+#         print('x4',x4.shape)
 
         x5 = wt(x4)
 #         x5 = self.Maxpool(x4)
         x5 = self.Conv5(x5)
-        print('x5',x5.shape)
+#         print('x5',x5.shape)
 
         # decoding + concat path
         d5=iwt(x5)
 #         d5 = self.Up5(x5)
         d5 = torch.cat((x4,d5),dim=1)
         d5 = self.Up_conv5(d5)
-        print('d5',d5.shape)
+#         print('d5',d5.shape)
 
         d4=iwt(d5)       
 #         d4 = self.Up4(d5)
         d4 = torch.cat((x3,d4),dim=1)
         d4 = self.Up_conv4(d4)
-        print('d4',d4.shape)
+#         print('d4',d4.shape)
 
         d3=iwt(d4)       
 #         d3 = self.Up3(d4)
         d3 = torch.cat((x2,d3),dim=1)
         d3 = self.Up_conv3(d3)
-        print('d3',d3.shape)
+#         print('d3',d3.shape)
 
         d2=iwt(d3)       
 #         d2 = self.Up2(d3)
         d2 = torch.cat((x1,d2),dim=1)
         d2 = self.Up_conv2(d2)
-        print('d2',d2.shape)
+#         print('d2',d2.shape)
 
         d1 = self.Conv_1x1(d2)
-        print('d1',d1.shape)
+#         print('d1',d1.shape)
 
         return d1
 
@@ -421,31 +421,31 @@ class Attwaveletunet_batch(nn.Module):
         self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
 
     def forward(self,x):
-        print('x',x.shape)
+#         print('x',x.shape)
 
         # encoding path
         x1 = self.Conv1(x)
-        print('x1',x1.shape)
+#         print('x1',x1.shape)
 
         x2 = wt(x1)
 #         x2 = self.Maxpool(x1)
         x2 = self.Conv2(x2)
-        print('x2',x2.shape)
+#         print('x2',x2.shape)
 
         x3 = wt(x2)
 #         x3 = self.Maxpool(x2)
         x3 = self.Conv3(x3)
-        print('x3',x3.shape)
+#         print('x3',x3.shape)
 
         x4 = wt(x3)
 #         x4 = self.Maxpool(x3)
         x4 = self.Conv4(x4)
-        print('x4',x4.shape)
+#         print('x4',x4.shape)
 
         x5 = wt(x4)
 #         x5 = self.Maxpool(x4)
         x5 = self.Conv5(x5)
-        print('x5',x5.shape)
+#         print('x5',x5.shape)
 
         # decoding + concat path
         d5=iwt(x5)
@@ -453,31 +453,31 @@ class Attwaveletunet_batch(nn.Module):
         x4 = self.Att5(g=d5,x=x4)
         d5 = torch.cat((x4,d5),dim=1)
         d5 = self.Up_conv5(d5)
-        print('d5',d5.shape)
+#         print('d5',d5.shape)
 
         d4=iwt(d5)       
 #         d4 = self.Up4(d5)
         x3 = self.Att4(g=d4,x=x3)
         d4 = torch.cat((x3,d4),dim=1)
         d4 = self.Up_conv4(d4)
-        print('d4',d4.shape)
+#         print('d4',d4.shape)
 
         d3=iwt(d4)       
 #         d3 = self.Up3(d4)
         x2 = self.Att3(g=d3,x=x2)
         d3 = torch.cat((x2,d3),dim=1)
         d3 = self.Up_conv3(d3)
-        print('d3',d3.shape)
+#         print('d3',d3.shape)
 
         d2=iwt(d3)       
 #         d2 = self.Up2(d3)
         x1 = self.Att2(g=d2,x=x1)
         d2 = torch.cat((x1,d2),dim=1)
         d2 = self.Up_conv2(d2)
-        print('d2',d2.shape)
+#         print('d2',d2.shape)
 
         d1 = self.Conv_1x1(d2)
-        print('d1',d1.shape)
+#         print('d1',d1.shape)
 
         return d1
     
