@@ -173,28 +173,28 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
     transform = list()
     
     if data_padsize:
-        if isinstance(data_padsize,int):
+        if len(data_padsize.split('_'))==1:
             transform.append(albu.PadIfNeeded(data_padsize, data_padsize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
         else:
             data_padsize_h = int(data_padsize.split('_')[0])
             data_padsize_w = int(data_padsize.split('_')[1])
             transform.append(albu.PadIfNeeded(data_padsize_h, data_padsize_w, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
     if data_cropsize:
-        if isinstance(data_cropsize,int):
+        if len(data_cropsize.split('_'))==1:
             transform.append(albu.PadIfNeeded(data_cropsize, data_cropsize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
         else:
             data_cropsize_h = int(data_cropsize.split('_')[0])
             data_cropsize_w = int(data_cropsize.split('_')[1])
             transform.append(albu.CenterCrop(data_cropsize_h, data_cropsize_w, always_apply=True))
     if data_resize:
-        if isinstance(data_resize,int):
+        if len(data_resize.split('_'))==1:
             transform.append(albu.PadIfNeeded(data_resize, data_resize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
         else:
             data_resize_h = int(data_resize.split('_')[0])
             data_resize_w = int(data_resize.split('_')[1])
             transform.append(albu.Resize(data_resize_h, data_resize_w, interpolation=cv2.INTER_CUBIC, always_apply=True))
     if data_patchsize:
-        if isinstance(data_patchsize,int):
+        if len(data_patchsize.split('_'))==1:
             transform.append(albu.PadIfNeeded(data_patchsize, data_patchsize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
         else:
             data_patchsize_h = int(data_patchsize.split('_')[0])
