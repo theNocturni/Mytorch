@@ -77,7 +77,7 @@ class dataset():
         x = cv2.imread(self.x_list[idx])
         y = cv2.imread(self.y_list[idx])
         x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
-        y[y!=0] = 1
+        
         if len(y.shape)==2:
             y = np.expand_dims(y,-1)
         elif len(y.shape)==3 and y.shape[-1]==3:

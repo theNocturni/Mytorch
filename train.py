@@ -230,8 +230,8 @@ def main(args: Namespace):
     from pytorch_lightning import loggers as pl_loggers
     from pytorch_lightning.callbacks import ModelCheckpoint,LearningRateMonitor, StochasticWeightAveraging, LambdaCallback, EarlyStopping
     
-    args.experiment_name = "Net{}_Netinputch{}_Netoutputch{}_Loss{}_Lr{}_Precision{}_Patchsize{}_Prefix{}_"\
-    .format(args.net, args.net_inputch, args.net_outputch, args.lossfn, args.lr, args.precision,args.data_patchsize,args.experiment_name)
+    args.experiment_name = "Dataset{}_Net{}_Netinputch{}_Netoutputch{}_Loss{}_Lr{}_Precision{}_Patchsize{}_Prefix{}_"\
+    .format(args.data_dir.split('/')[-1], args.net, args.net_inputch, args.net_outputch, args.lossfn, args.lr, args.precision,args.data_patchsize,args.experiment_name)
     print('Current Experiment:',args.experiment_name)
     
     wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name)
