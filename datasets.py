@@ -174,6 +174,7 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
     
     if data_padsize:
         if len(data_padsize.split('_'))==1:
+            data_padsize = int(data_padsize)
             transform.append(albu.PadIfNeeded(data_padsize, data_padsize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
         else:
             data_padsize_h = int(data_padsize.split('_')[0])
@@ -181,6 +182,7 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
             transform.append(albu.PadIfNeeded(data_padsize_h, data_padsize_w, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
     if data_cropsize:
         if len(data_cropsize.split('_'))==1:
+            data_cropsize = int(data_cropsize)
             transform.append(albu.PadIfNeeded(data_cropsize, data_cropsize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
         else:
             data_cropsize_h = int(data_cropsize.split('_')[0])
@@ -188,6 +190,7 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
             transform.append(albu.CenterCrop(data_cropsize_h, data_cropsize_w, always_apply=True))
     if data_resize:
         if len(data_resize.split('_'))==1:
+            data_resize = int(data_resize)
             transform.append(albu.PadIfNeeded(data_resize, data_resize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
         else:
             data_resize_h = int(data_resize.split('_')[0])
@@ -195,6 +198,7 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
             transform.append(albu.Resize(data_resize_h, data_resize_w, interpolation=cv2.INTER_CUBIC, always_apply=True))
     if data_patchsize:
         if len(data_patchsize.split('_'))==1:
+            data_patchsize = int(data_patchsize)
             transform.append(albu.PadIfNeeded(data_patchsize, data_patchsize, border_mode=cv2.BORDER_CONSTANT, value=0, always_apply=True))
         else:
             data_patchsize_h = int(data_patchsize.split('_')[0])

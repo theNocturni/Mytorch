@@ -90,7 +90,7 @@ class SegModel(pl.LightningModule):
         x,y  = batch['x'], batch['y']
         
 #         yhat = self(x) # changed to sliding window method
-        roi_size = self.data_patchsize if len(self.data_patchsize.split('_'))==1 else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1])) 
+        roi_size = int(self.data_patchsize) if len(self.data_patchsize.split('_'))==1 else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1])) 
         yhat = sliding_window_inference(inputs=x,roi_size=roi_size,sw_batch_size=4,predictor=self.net,overlap=0.5,mode='constant')
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
@@ -236,10 +236,10 @@ def main(args: Namespace):
     wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name)
     wb_logger.log_hyperparams(args)
     
-    wandb.init(name=args.experiment_name)
-    wandb.run.name = args.experiment_name + wandb.run.id
-    wandb.config.update(args, allow_val_change=True)
-    wandb.watch(model, log="all", log_freq=100, log_graph=True)
+#     wandb.init(name=args.experiment_name)
+#     wandb.run.name = args.experiment_name + wandb.run.id
+#     wandb.config.update(args, allow_val_change=True)
+#     wandb.watch(model, log="all", log_freq=100, log_graph=True)
     
     Checkpoint_callback = ModelCheckpoint(verbose=True, 
                                           monitor='loss_val',
