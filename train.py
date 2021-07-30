@@ -111,8 +111,8 @@ class SegModel(pl.LightningModule):
             optimizer = torch.optim.Adam(self.net.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)    
         else:
-            optimizer = torch.optim.SGD(self.net.parameters(), lr=0)
-            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
+            optimizer = torch.optim.SGD(self.net.parameters(), lr=0, momentum=0.9)
+            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=200, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
         return {'optimizer': optimizer,
                 'lr_scheduler': {'scheduler': scheduler,
                                  'monitor': 'loss_val'}
