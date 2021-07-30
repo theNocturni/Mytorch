@@ -29,6 +29,7 @@ class SegModel(pl.LightningModule):
 
     def __init__(
         self,
+        project: str,
         data_dir: str,
         data_module = 'dataset',
         batch_size: int = 1,
@@ -47,6 +48,7 @@ class SegModel(pl.LightningModule):
         **kwargs):
                 
         super().__init__(**kwargs)
+        self.project = project
         self.data_dir = data_dir
         self.data_module = data_module
         self.batch_size = batch_size
@@ -121,6 +123,7 @@ class SegModel(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = ArgumentParser(parents=[parent_parser])
+        parser.add_argument("--project", type=str, help="wandb project name, this will set your wandb project")
         parser.add_argument("--data_dir", type=str, help="path where dataset is stored, subfolders name should be x_train, y_train")
         parser.add_argument("--data_module", type=str,default='dataset', help="Data Module, see datasets.py")
         parser.add_argument("--data_padsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
@@ -223,6 +226,9 @@ def main(args: Namespace):
     # 1 INIT LIGHTNING MODEL
     # ------------------------
     model = SegModel(**vars(args))
+    assert args.project != None, "You should set wandb-logger project name by --project [PROJECT_NAME]"
+        
+    print('project', args.project)
     
     # ------------------------
     # 2 SET LOGGER
@@ -234,7 +240,7 @@ def main(args: Namespace):
     .format(args.data_dir.split('/')[-1], args.net, args.net_inputch, args.net_outputch, args.lossfn, args.lr, args.precision,args.data_patchsize,args.experiment_name)
     print('Current Experiment:',args.experiment_name)
     
-    wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name)
+    wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name, project=args.project)
     wb_logger.log_hyperparams(args)
     
 #     wandb.init(name=args.experiment_name)
