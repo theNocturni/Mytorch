@@ -104,66 +104,66 @@ class dataset():
         
         return {'x':x,'y':y,'fname':fname}
 
-class dataset_kornia():
+# class dataset_kornia():
     
-    def __init__(self,data_root='dataset',dataset_type='train', transform_crop=None, transform=None):
-        self.data_root = data_root
-        if dataset_type =='train':
-            self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_train/*'))
-        elif dataset_type =='valid':
-            self.x_list = natsorted(glob.glob(data_root+'/x_valid/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_valid/*'))
-        elif dataset_type =='test':
-            self.x_list = natsorted(glob.glob(data_root+'/x_test/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_test/*'))
-        elif dataset_type =='etest':
-            self.x_list = natsorted(glob.glob(data_root+'/x_etest/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
-            self.x_list = self.x_list[:1]
+#     def __init__(self,data_root='dataset',dataset_type='train', transform_crop=None, transform=None):
+#         self.data_root = data_root
+#         if dataset_type =='train':
+#             self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
+#             self.y_list = natsorted(glob.glob(data_root+'/y_train/*'))
+#         elif dataset_type =='valid':
+#             self.x_list = natsorted(glob.glob(data_root+'/x_valid/*'))
+#             self.y_list = natsorted(glob.glob(data_root+'/y_valid/*'))
+#         elif dataset_type =='test':
+#             self.x_list = natsorted(glob.glob(data_root+'/x_test/*'))
+#             self.y_list = natsorted(glob.glob(data_root+'/y_test/*'))
+#         elif dataset_type =='etest':
+#             self.x_list = natsorted(glob.glob(data_root+'/x_etest/*'))
+#             self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
+#             self.x_list = self.x_list[:1]
             
-        self.transform = transform
-        print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
+#         self.transform = transform
+#         print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
         
-    def __len__(self):
-        return len(self.x_list)
+#     def __len__(self):
+#         return len(self.x_list)
   
-    def __getitem__(self, idx):
-        fname = self.x_list[idx]
-        x = cv2.imread(self.x_list[idx])
-        y = cv2.imread(self.y_list[idx])
-        x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
+#     def __getitem__(self, idx):
+#         fname = self.x_list[idx]
+#         x = cv2.imread(self.x_list[idx])
+#         y = cv2.imread(self.y_list[idx])
+#         x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
         
-        if len(y.shape)==2:
-            y = np.expand_dims(y,-1)
+#         if len(y.shape)==2:
+#             y = np.expand_dims(y,-1)
             
         
-        if self.transform:
-            sample = self.transform(image = x, mask = y)
-            x, y= sample['image'], sample['mask']        
+#         if self.transform:
+#             sample = self.transform(image = x, mask = y)
+#             x, y= sample['image'], sample['mask']        
 
-        x = x.astype(np.float32)
-        x = clahe(x)
+#         x = x.astype(np.float32)
+#         x = clahe(x)
         
-        if self.transform_crop:
-            sample = self.transform_crop(image = x, mask = y)
-            x, y= sample['image'], sample['mask']        
+#         if self.transform_crop:
+#             sample = self.transform_crop(image = x, mask = y)
+#             x, y= sample['image'], sample['mask']        
         
-        x = np.moveaxis(x,-1,0).astype(np.float32)
-        y = np.moveaxis(y,-1,0).astype(np.float32)
+#         x = np.moveaxis(x,-1,0).astype(np.float32)
+#         y = np.moveaxis(y,-1,0).astype(np.float32)
 
-        x = torch.tensor(x)
+#         x = torch.tensor(x)
         
-        y = torch.tensor(y)
-        y = y[0].unsqueeze(0)
+#         y = torch.tensor(y)
+#         y = y[0].unsqueeze(0)
         
-        kernel = torch.ones(13,13)
-#         kernel = torch.tensor(star(13)).float()
-        x = kornia.morphology.bottom_hat(x.unsqueeze(0), kernel)
-        x = kornia.enhance.normalize_min_max(x)
-        x = x.squeeze(0)
+#         kernel = torch.ones(13,13)
+# #         kernel = torch.tensor(star(13)).float()
+#         x = kornia.morphology.bottom_hat(x.unsqueeze(0), kernel)
+#         x = kornia.enhance.normalize_min_max(x)
+#         x = x.squeeze(0)
         
-        return {'x':x,'y':y,'fname':fname}
+#         return {'x':x,'y':y,'fname':fname}
 
 # augmentation
 def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=None, data_patchsize = None):

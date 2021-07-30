@@ -23,10 +23,6 @@ import utils
 import wandb
 import torchmetrics
 
-# import kornia
-# import cv2
-# import matplotlib.pyplot as plt
-
 from monai.inferers import sliding_window_inference
 
 class SegModel(pl.LightningModule):
@@ -93,7 +89,7 @@ class SegModel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x,y  = batch['x'], batch['y']
         
-#         yhat = self(x)
+#         yhat = self(x) # changed to sliding window method
         roi_size = self.data_patchsize if isinstance(self.data_patchsize, int) else int(self.data_patchsize.split('_')[0]) 
         yhat = sliding_window_inference(inputs=x,roi_size=roi_size,sw_batch_size=4,predictor=self.net,overlap=0.5,mode='constant')
         yhat = utils.Activation(yhat)
@@ -115,7 +111,7 @@ class SegModel(pl.LightningModule):
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)    
         else:
             optimizer = torch.optim.SGD(self.net.parameters(), lr=0)
-            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=200, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
+            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
         return {'optimizer': optimizer,
                 'lr_scheduler': {'scheduler': scheduler,
                                  'monitor': 'loss_val'}
@@ -142,7 +138,15 @@ class SegModel(pl.LightningModule):
 
 class MyDataModule(pl.LightningDataModule):
 
-    def __init__(self, data_dir: str = "path/to/dir", data_module ='dataset', batch_size: int = 1, data_padsize = None, data_cropsize= None, data_resize= None, data_patchsize = None, num_workers: int = 4):
+    def __init__(self, data_dir: str = "path/to/dir", 
+                       data_module ='dataset', 
+                       batch_size: int = 1, 
+                       data_padsize = None, 
+                       data_cropsize= None, 
+                       data_resize= None, 
+                       data_patchsize = None, 
+                       num_workers: int = 4):
+
         super().__init__()
         self.data_dir = data_dir
         self.data_module = data_module
@@ -156,19 +160,24 @@ class MyDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         
         fn_call = getattr(datasets, self.data_module)
-        self.trainset = fn_call(self.data_dir, 'train',
-                                transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
+        self.trainset = fn_call(self.data_dir, 
+                                'train',
+                                transform_spatial = datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize,
                                                                                  data_patchsize = self.data_patchsize,), 
                                 transform=datasets.augmentation_train())
-        self.validset = fn_call(self.data_dir, 'valid',
-                                transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
+        
+        self.validset = fn_call(self.data_dir, 
+                                'valid',
+                                transform_spatial = datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize), 
                                 transform=datasets.augmentation_valid())
-        self.testset = fn_call(self.data_dir, 'test',
-                                transform_spatial =datasets.augmentation_imagesize(data_padsize = self.data_padsize,
+        
+        self.testset = fn_call(self.data_dir, 
+                               'test',
+                                transform_spatial = datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize), 
                                 transform=datasets.augmentation_valid())
@@ -183,8 +192,8 @@ class MyDataModule(pl.LightningDataModule):
         return DataLoader(self.test, batch_size=self.batch_size)
 
 
-# wandb image
-segmentation_classes = ['black', 'class1', 'class2']
+# wandb image visualization
+segmentation_classes = ['black', 'class1', 'class2', 'class3', 'class4', 'class5']
 
 def labels():
     l = {}
@@ -230,11 +239,11 @@ def main(args: Namespace):
     wandb.run.name = args.experiment_name + wandb.run.id
     wandb.config.update(args, allow_val_change=True) 
     
-    checkpoint_callback = ModelCheckpoint(verbose=True, 
-#                                           monitor='loss_val',
-#                                           mode='min',
-                                          monitor='metric_val',
-                                          mode='max',
+    Checkpoint_callback = ModelCheckpoint(verbose=True, 
+                                          monitor='loss_val',
+                                          mode='min',
+#                                           monitor='metric_val',
+#                                           mode='max',
                                           filename='{epoch:04d}-{loss_val:.4f}-{metric_val:.4f}',
                                           save_top_k=3,)
     
@@ -246,11 +255,11 @@ def main(args: Namespace):
                                             amp_backend='native',
                                             gpus = -1,
                                             sync_batchnorm =True,
-                                            callbacks=[checkpoint_callback,
+                                            callbacks=[Checkpoint_callback,
                                                        LearningRateMonitor(),
                                                        StochasticWeightAveraging(),
-#                                                        EarlyStopping(monitor='loss_val',patience=200),
-                                                       EarlyStopping(monitor='metric_val',patience=200),
+                                                       EarlyStopping(monitor='loss_val',patience=200),
+#                                                        EarlyStopping(monitor='metric_val',patience=200),
                                                       ],
                                             auto_scale_batch_size='power',
                                             weights_summary='top', 

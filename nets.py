@@ -78,13 +78,13 @@ def bn2group(module):
     del module
     return module_output
 
-class manet_eb7_batch(nn.Module):
+class manet_eb5_batch(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(manet_eb7_batch, self).__init__()        
+        super(manet_eb5_batch, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
-                        encoder_name='timm-efficientnet-b7',
+                        encoder_name='timm-efficientnet-b5',
                         encoder_depth=5,
                         encoder_weights='imagenet',
                         decoder_use_batchnorm=True,
@@ -95,19 +95,19 @@ class manet_eb7_batch(nn.Module):
                         activation=None,
                         aux_params=None)
     
-#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b5_2class.pt')
 #         self.net.load_state_dict(weight['net_state_dict'])
 
     def forward(self,x):
         return self.net(x)    
 
-class manet_eb7_instance(nn.Module):
+class manet_eb5_instance(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(manet_eb7_instance, self).__init__()        
+        super(manet_eb5_instance, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
-                        encoder_name='timm-efficientnet-b7',
+                        encoder_name='timm-efficientnet-b5',
                         encoder_depth=5,
                         encoder_weights='imagenet',
                         decoder_use_batchnorm=True,
@@ -118,20 +118,20 @@ class manet_eb7_instance(nn.Module):
                         activation=None,
                         aux_params=None)
 
-#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b5_2class.pt')
 #         self.net.load_state_dict(weight['net_state_dict'])
 
         self.net = bn2instance(self.net)
     def forward(self,x):
         return self.net(x)    
     
-class manet_eb7_group(nn.Module):
+class manet_eb5_group(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(manet_eb7_group, self).__init__()        
+        super(manet_eb5_group, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
-                        encoder_name='timm-efficientnet-b7',
+                        encoder_name='timm-efficientnet-b5',
                         encoder_depth=5,
                         encoder_weights='imagenet',
                         decoder_use_batchnorm=True,
@@ -142,20 +142,20 @@ class manet_eb7_group(nn.Module):
                         activation=None,
                         aux_params=None)
 
-#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b7_2class.pt')
+#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b5_2class.pt')
 #         self.net.load_state_dict(weight['net_state_dict'])
 
         self.net = bn2group(self.net)
     def forward(self,x):
         return self.net(x)        
     
-class unet_eb7_batch(nn.Module):
+class unet_eb5_batch(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(unet_eb7_batch, self).__init__()        
+        super(unet_eb5_batch, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.Unet(
-                        encoder_name='timm-efficientnet-b7',
+                        encoder_name='timm-efficientnet-b5',
                         decoder_use_batchnorm = True,
                         decoder_attention_type = 'scse',
                         encoder_depth=5,
@@ -164,13 +164,13 @@ class unet_eb7_batch(nn.Module):
     def forward(self,x):
         return self.net(x)    
 
-class unet_eb7_instance(nn.Module):
+class unet_eb5_instance(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(unet_eb7_instance, self).__init__()        
+        super(unet_eb5_instance, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.Unet(
-                        encoder_name='timm-efficientnet-b7',
+                        encoder_name='timm-efficientnet-b5',
                         decoder_use_batchnorm = True,
                         decoder_attention_type = 'scse',
                         encoder_depth=5,
@@ -181,13 +181,13 @@ class unet_eb7_instance(nn.Module):
     def forward(self,x):
         return self.net(x)    
 
-class unet_eb7_group(nn.Module):
+class unet_eb5_group(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(unet_eb7_group, self).__init__()        
+        super(unet_eb5_group, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.Unet(
-                        encoder_name='timm-efficientnet-b7',
+                        encoder_name='timm-efficientnet-b5',
                         decoder_use_batchnorm = True,
                         decoder_attention_type = 'scse',
                         encoder_depth=5,
@@ -197,11 +197,10 @@ class unet_eb7_group(nn.Module):
 
     def forward(self,x):
         return self.net(x)    
-    
-    
-class segunet_elb4(nn.Module):
+        
+class manet_elb4_batch(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(segunet_elb4, self).__init__()        
+        super(manet_elb4_batch, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
@@ -267,75 +266,220 @@ def iwt(vres):
         res[:,i:i+1,:,:] = temp
     return res
 
-class waveletunet_batch(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=16):
-        super(waveletunet_batch, self).__init__()
-        c = num_c
+# class waveletunet_batch(nn.Module):
+#     def __init__(self,net_inputch=3,net_outputch=2,num_c=16):
+#         super(waveletunet_batch, self).__init__()
+#         c = num_c
         
-        self.norm0 = nn.BatchNorm2d(4*net_outputch) 
-        self.norm1 = nn.BatchNorm2d(c) 
-        self.norm2 = nn.BatchNorm2d(4*c) 
-        self.norm3 = nn.BatchNorm2d(16*c) 
-        self.norm4 = nn.BatchNorm2d(64*c) 
+#         self.norm0 = nn.BatchNorm2d(4*net_outputch) 
+#         self.norm1 = nn.BatchNorm2d(c) 
+#         self.norm2 = nn.BatchNorm2d(4*c) 
+#         self.norm3 = nn.BatchNorm2d(16*c) 
+#         self.norm4 = nn.BatchNorm2d(64*c) 
 
-        self.conv1 = nn.Conv2d(4*net_inputch,c,3,1,padding=1)
-        self.conv2 = nn.Conv2d(4*c,4*c,3,1,padding=1)        
-        self.conv3 = nn.Conv2d(16*c,16*c,3,1,padding=1)  
-        self.conv4 = nn.Conv2d(64*c,64*c,3,1,padding=1)
+#         self.conv1 = nn.Conv2d(4*net_inputch,c,3,1,padding=1)
+#         self.conv2 = nn.Conv2d(4*c,4*c,3,1,padding=1)        
+#         self.conv3 = nn.Conv2d(16*c,16*c,3,1,padding=1)  
+#         self.conv4 = nn.Conv2d(64*c,64*c,3,1,padding=1)
 
-        self.convd1 = nn.Conv2d(c,4*net_outputch,3,1,padding=1)
-        self.convd2 = nn.Conv2d(2*c,c,3,1,padding=1) 
-        self.convd3 = nn.Conv2d(8*c,4*c,3,1,padding=1)        
-        self.convd4 = nn.Conv2d(32*c,16*c,3,1,padding=1)  
+#         self.convd1 = nn.Conv2d(c,4*net_outputch,3,1,padding=1)
+#         self.convd2 = nn.Conv2d(2*c,c,3,1,padding=1) 
+#         self.convd3 = nn.Conv2d(8*c,4*c,3,1,padding=1)        
+#         self.convd4 = nn.Conv2d(32*c,16*c,3,1,padding=1)  
             
-        self.relu = nn.LeakyReLU(0.2)        
-        self.convd_last = torch.nn.Conv2d(net_outputch,net_outputch,1,padding=0, bias=False)
+#         self.relu = nn.LeakyReLU(0.2)        
+#         self.convd_last = torch.nn.Conv2d(net_outputch,net_outputch,1,padding=0, bias=False)
 
-    def forward(self, x):
-        
-        w1=wt(x)
-        c1=self.relu(self.norm1(self.conv1(w1)))
-                
-        w2=wt(c1)
-        c2=self.relu(self.norm2(self.conv2(w2)))
-        
-        w3=wt(c2)
-        c3=self.relu(self.norm3(self.conv3(w3)))
-        
-        w4=wt(c3)
-        c4=self.relu(self.norm4(self.conv4(w4)))
-        c5=self.relu(self.norm4(self.conv4(c4)))
-        c6=self.norm4(self.conv4(c5))
-        ic4=self.relu(c6+w4)
-
-        iw4=iwt(ic4)
-        iw4=torch.cat([c3,iw4],1)
-        ic3=self.relu(self.norm3(self.convd4(iw4)))
-        
-        iw3=iwt(ic3)
-        iw3=torch.cat([c2,iw3],1)
-        ic2=self.relu(self.norm2(self.convd3(iw3)))
-        
-        iw2=iwt(ic2)
-        iw2=torch.cat([c1,iw2],1)
-        ic1=self.relu(self.norm1(self.convd2(iw2)))
-        iw1=self.relu(self.norm0(self.convd1(ic1)))
-
-        y=iwt(iw1)
-        y = self.convd_last(y)
-        return y
-
-# class ACT(nn.Module):
-#     def __init__(self,in_channel=1,out_channel=1,num_c=16,ws=False):
-#         super(ACT, self).__init__()
-#         self.net = Waveletnet(in_channel=in_channel,num_c=num_c,ws=ws)
-#         self.c = torch.nn.Conv2d(3,out_channel,1,padding=0, bias=False)
-      
 #     def forward(self, x):
-#         x = self.net(x)
-#         x = self.c(x)
-    
-#         return x
+        
+#         w1=wt(x)
+#         c1=self.relu(self.norm1(self.conv1(w1)))
+                
+#         w2=wt(c1)
+#         c2=self.relu(self.norm2(self.conv2(w2)))
+        
+#         w3=wt(c2)
+#         c3=self.relu(self.norm3(self.conv3(w3)))
+        
+#         w4=wt(c3)
+#         c4=self.relu(self.norm4(self.conv4(w4)))
+#         c5=self.relu(self.norm4(self.conv4(c4)))
+#         c6=self.norm4(self.conv4(c5))
+#         ic4=self.relu(c6+w4)
+
+#         iw4=iwt(ic4)
+#         iw4=torch.cat([c3,iw4],1)
+#         ic3=self.relu(self.norm3(self.convd4(iw4)))
+        
+#         iw3=iwt(ic3)
+#         iw3=torch.cat([c2,iw3],1)
+#         ic2=self.relu(self.norm2(self.convd3(iw3)))
+        
+#         iw2=iwt(ic2)
+#         iw2=torch.cat([c1,iw2],1)
+#         ic1=self.relu(self.norm1(self.convd2(iw2)))
+#         iw1=self.relu(self.norm0(self.convd1(ic1)))
+
+#         y=iwt(iw1)
+#         y = self.convd_last(y)
+#         return y    
+
+class waveletunet_batch(nn.Module):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=4):
+        super(waveletunet_batch,self).__init__()        
+        
+        self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
+        self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*4)
+        self.Conv3 = conv_block(ch_in=num_c*16,ch_out=num_c*16)
+        self.Conv4 = conv_block(ch_in=num_c*64,ch_out=num_c*64)
+        self.Conv5 = conv_block(ch_in=num_c*256,ch_out=num_c*256)
+
+        self.Up_conv5 = conv_block(ch_in=num_c*128, ch_out=num_c*64)
+        self.Up_conv4 = conv_block(ch_in=num_c*32, ch_out=num_c*16)
+        self.Up_conv3 = conv_block(ch_in=num_c*8, ch_out=num_c*4)
+        self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
+
+        self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
+
+    def forward(self,x):
+        print('x',x.shape)
+
+        # encoding path
+        x1 = self.Conv1(x)
+        print('x1',x1.shape)
+
+        x2 = wt(x1)
+#         x2 = self.Maxpool(x1)
+        x2 = self.Conv2(x2)
+        print('x2',x2.shape)
+
+        x3 = wt(x2)
+#         x3 = self.Maxpool(x2)
+        x3 = self.Conv3(x3)
+        print('x3',x3.shape)
+
+        x4 = wt(x3)
+#         x4 = self.Maxpool(x3)
+        x4 = self.Conv4(x4)
+        print('x4',x4.shape)
+
+        x5 = wt(x4)
+#         x5 = self.Maxpool(x4)
+        x5 = self.Conv5(x5)
+        print('x5',x5.shape)
+
+        # decoding + concat path
+        d5=iwt(x5)
+#         d5 = self.Up5(x5)
+        d5 = torch.cat((x4,d5),dim=1)
+        d5 = self.Up_conv5(d5)
+        print('d5',d5.shape)
+
+        d4=iwt(d5)       
+#         d4 = self.Up4(d5)
+        d4 = torch.cat((x3,d4),dim=1)
+        d4 = self.Up_conv4(d4)
+        print('d4',d4.shape)
+
+        d3=iwt(d4)       
+#         d3 = self.Up3(d4)
+        d3 = torch.cat((x2,d3),dim=1)
+        d3 = self.Up_conv3(d3)
+        print('d3',d3.shape)
+
+        d2=iwt(d3)       
+#         d2 = self.Up2(d3)
+        d2 = torch.cat((x1,d2),dim=1)
+        d2 = self.Up_conv2(d2)
+        print('d2',d2.shape)
+
+        d1 = self.Conv_1x1(d2)
+        print('d1',d1.shape)
+
+        return d1
+
+class Attwaveletunet_batch(nn.Module):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=4):
+        super(Attwaveletunet_batch,self).__init__()        
+        
+        self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
+        self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*4)
+        self.Conv3 = conv_block(ch_in=num_c*16,ch_out=num_c*16)
+        self.Conv4 = conv_block(ch_in=num_c*64,ch_out=num_c*64)
+        self.Conv5 = conv_block(ch_in=num_c*256,ch_out=num_c*256)
+
+        self.Up_conv5 = conv_block(ch_in=num_c*128, ch_out=num_c*64)
+        self.Up_conv4 = conv_block(ch_in=num_c*32, ch_out=num_c*16)
+        self.Up_conv3 = conv_block(ch_in=num_c*8, ch_out=num_c*4)
+        self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
+        
+        self.Att5 = Attention_block(F_g=num_c*64,F_l=num_c*64,F_int=num_c*64)
+        self.Att4 = Attention_block(F_g=num_c*16,F_l=num_c*16,F_int=num_c*16)
+        self.Att3 = Attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
+        self.Att2 = Attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
+        
+        self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
+
+    def forward(self,x):
+        print('x',x.shape)
+
+        # encoding path
+        x1 = self.Conv1(x)
+        print('x1',x1.shape)
+
+        x2 = wt(x1)
+#         x2 = self.Maxpool(x1)
+        x2 = self.Conv2(x2)
+        print('x2',x2.shape)
+
+        x3 = wt(x2)
+#         x3 = self.Maxpool(x2)
+        x3 = self.Conv3(x3)
+        print('x3',x3.shape)
+
+        x4 = wt(x3)
+#         x4 = self.Maxpool(x3)
+        x4 = self.Conv4(x4)
+        print('x4',x4.shape)
+
+        x5 = wt(x4)
+#         x5 = self.Maxpool(x4)
+        x5 = self.Conv5(x5)
+        print('x5',x5.shape)
+
+        # decoding + concat path
+        d5=iwt(x5)
+#         d5 = self.Up5(x5)
+        x4 = self.Att5(g=d5,x=x4)
+        d5 = torch.cat((x4,d5),dim=1)
+        d5 = self.Up_conv5(d5)
+        print('d5',d5.shape)
+
+        d4=iwt(d5)       
+#         d4 = self.Up4(d5)
+        x3 = self.Att4(g=d4,x=x3)
+        d4 = torch.cat((x3,d4),dim=1)
+        d4 = self.Up_conv4(d4)
+        print('d4',d4.shape)
+
+        d3=iwt(d4)       
+#         d3 = self.Up3(d4)
+        x2 = self.Att3(g=d3,x=x2)
+        d3 = torch.cat((x2,d3),dim=1)
+        d3 = self.Up_conv3(d3)
+        print('d3',d3.shape)
+
+        d2=iwt(d3)       
+#         d2 = self.Up2(d3)
+        x1 = self.Att2(g=d2,x=x1)
+        d2 = torch.cat((x1,d2),dim=1)
+        d2 = self.Up_conv2(d2)
+        print('d2',d2.shape)
+
+        d1 = self.Conv_1x1(d2)
+        print('d1',d1.shape)
+
+        return d1
     
 # weight standardization
     
@@ -353,123 +497,54 @@ class Conv2d(nn.Conv2d):
         return F.conv2d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
 
 class conv_block(nn.Module):
-    def __init__(self,ch_in,ch_out,norm='batch'):
+    def __init__(self,ch_in,ch_out):
         super(conv_block,self).__init__()
         inplace = True
 #         inplace = False
         
-        if norm=='batch':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace),
-                nn.Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='instance':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace),
-                nn.Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='group':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace),
-                nn.Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='ws':
-            self.conv = nn.Sequential(
-                Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace),
-                Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
-            )
+        self.conv = nn.Sequential(
+            nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
+            nn.BatchNorm2d(ch_out),
+            nn.ReLU(inplace=inplace),
+            nn.Conv2d(ch_out, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
+            nn.BatchNorm2d(ch_out),
+            nn.ReLU(inplace=inplace)
+        )
 
     def forward(self,x):
         x = self.conv(x)
         return x
 
 class up_conv(nn.Module):
-    def __init__(self,ch_in,ch_out,norm='batch'):
+    def __init__(self,ch_in,ch_out):
         super(up_conv,self).__init__()
-        
         inplace = True
 #         inplace = False
+
+        self.up = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
+            nn.BatchNorm2d(ch_out),
+            nn.ReLU(inplace=inplace)
+        )
     
-        if norm=='batch':
-            self.up = nn.Sequential(
-                nn.Upsample(scale_factor=2),
-                nn.Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
-                nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='instance':
-            self.up = nn.Sequential(
-                nn.Upsample(scale_factor=2),
-                nn.Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
-                nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='group':
-            self.up = nn.Sequential(
-                nn.Upsample(scale_factor=2),
-                nn.Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='ws':
-            self.up = nn.Sequential(
-                nn.Upsample(scale_factor=2),
-                Conv2d(ch_in,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
-            )
     def forward(self,x):
         x = self.up(x)
         return x
 
 class Recurrent_block(nn.Module):
-    def __init__(self,ch_out,t=2,norm='batch'):
+    def __init__(self,ch_out,t=2):
         super(Recurrent_block,self).__init__()
         self.t = t
         self.ch_out = ch_out
         inplace = True
 #         inplace = False
         
-        if norm=='batch':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
-                nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='instance':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
-                nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='group':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='ws':
-            self.conv = nn.Sequential(
-                Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
-            )
+        self.conv = nn.Sequential(
+            nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
+            nn.BatchNorm2d(ch_out),
+            nn.ReLU(inplace=inplace)
+        )
 
     def forward(self,x):
         for i in range(self.t):
@@ -500,105 +575,38 @@ class single_conv(nn.Module):
         super(single_conv,self).__init__()
         inplace = True
 #         inplace = False
-        if norm=='batch':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='instance':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.InstanceNorm2d(ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='group':
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
-            )
-        elif norm=='ws':
-            self.conv = nn.Sequential(
-                Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
-                nn.GroupNorm(int(ch_out/groupnorm_parameter),ch_out),
-                nn.ReLU(inplace=inplace)
-            )
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
+            nn.BatchNorm2d(ch_out),
+            nn.ReLU(inplace=inplace)
+        )
 
     def forward(self,x):
         x = self.conv(x)
         return x
 
 class Attention_block(nn.Module):
-    def __init__(self,F_g,F_l,F_int,norm='batch'):
+    def __init__(self,F_g,F_l,F_int):
         super(Attention_block,self).__init__()
         inplace= True
 #         inplace= False
-        
-        if norm=='batch':
-            self.W_g = nn.Sequential(
-                nn.Conv2d(F_g, F_int, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.BatchNorm2d(F_int)
-                )
 
-            self.W_x = nn.Sequential(
-                nn.Conv2d(F_l, F_int, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.BatchNorm2d(F_int)
+        self.W_g = nn.Sequential(
+            nn.Conv2d(F_g, F_int, kernel_size=1,stride=1,padding=0,bias=True),
+            nn.BatchNorm2d(F_int)
             )
 
-            self.psi = nn.Sequential(
-                nn.Conv2d(F_int, 1, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.BatchNorm2d(1),
-                nn.Sigmoid()
-            )
-        elif norm=='instance':
-            self.W_g = nn.Sequential(
-                nn.Conv2d(F_g, F_int, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.InstanceNorm2d(F_int)
-                )
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, F_int, kernel_size=1,stride=1,padding=0,bias=True),
+            nn.BatchNorm2d(F_int)
+        )
 
-            self.W_x = nn.Sequential(
-                nn.Conv2d(F_l, F_int, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.InstanceNorm2d(F_int)
-            )
-
-            self.psi = nn.Sequential(
-                nn.Conv2d(F_int, 1, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.InstanceNorm2d(1),
-                nn.Sigmoid()
-            )
-        elif norm=='group':
-            self.W_g = nn.Sequential(
-                nn.Conv2d(F_g, F_int, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.GroupNorm(int(F_int/groupnorm_parameter),F_int),
-                )
-
-            self.W_x = nn.Sequential(
-                nn.Conv2d(F_l, F_int, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.GroupNorm(int(F_int/groupnorm_parameter),F_int),
-            )
-
-            self.psi = nn.Sequential(
-                nn.Conv2d(F_int, 1, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.GroupNorm(1,1),
-                nn.Sigmoid()
-            )
-        elif norm=='ws':
-            self.W_g = nn.Sequential(
-                Conv2d(F_g, F_int, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.GroupNorm(int(F_int/groupnorm_parameter),F_int),
-                )
-
-            self.W_x = nn.Sequential(
-                Conv2d(F_l, F_int, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.GroupNorm(int(F_int/groupnorm_parameter),F_int),
-            )
-
-            self.psi = nn.Sequential(
-                Conv2d(F_int, 1, kernel_size=1,stride=1,padding=0,bias=True),
-                nn.GroupNorm(1,1),
-                nn.Sigmoid()
-            )
+        self.psi = nn.Sequential(
+            nn.Conv2d(F_int, 1, kernel_size=1,stride=1,padding=0,bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
         self.relu = nn.ReLU(inplace=inplace)
         
     def forward(self,g,x):
@@ -607,9 +615,7 @@ class Attention_block(nn.Module):
         psi = self.relu(g1+x1)
         psi = self.psi(psi)
 
-        return x*psi
-
-    
+        return x*psi  
     
 
 class MCDropout(nn.Dropout):
