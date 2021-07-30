@@ -501,8 +501,8 @@ class Conv2d(nn.Conv2d):
 class conv_block(nn.Module):
     def __init__(self,ch_in,ch_out):
         super(conv_block,self).__init__()
-        inplace = True
-#         inplace = False
+#         inplace = True
+        inplace = False
         
         self.conv = nn.Sequential(
             nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
@@ -520,8 +520,8 @@ class conv_block(nn.Module):
 class up_conv(nn.Module):
     def __init__(self,ch_in,ch_out):
         super(up_conv,self).__init__()
-        inplace = True
-#         inplace = False
+#         inplace = True
+        inplace = False
 
         self.up = nn.Sequential(
             nn.Upsample(scale_factor=2),
@@ -539,8 +539,8 @@ class Recurrent_block(nn.Module):
         super(Recurrent_block,self).__init__()
         self.t = t
         self.ch_out = ch_out
-        inplace = True
-#         inplace = False
+#         inplace = True
+        inplace = False
         
         self.conv = nn.Sequential(
             nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
@@ -575,8 +575,8 @@ class RRCNN_block(nn.Module):
 class single_conv(nn.Module):
     def __init__(self,ch_in,ch_out,norm='batch'):
         super(single_conv,self).__init__()
-        inplace = True
-#         inplace = False
+#         inplace = True
+        inplace = False
 
         self.conv = nn.Sequential(
             nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
@@ -591,8 +591,8 @@ class single_conv(nn.Module):
 class Attention_block(nn.Module):
     def __init__(self,F_g,F_l,F_int):
         super(Attention_block,self).__init__()
-        inplace= True
-#         inplace= False
+#         inplace= True
+        inplace= False
 
         self.W_g = nn.Sequential(
             nn.Conv2d(F_g, F_int, kernel_size=1,stride=1,padding=0,bias=True),

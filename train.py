@@ -37,7 +37,7 @@ class SegModel(pl.LightningModule):
         net_inputch = 1,
         net_outputch = 1,
         lossfn = 'CELoss',
-        net = 'segunet',   
+        net = 'unet_eb5_batch',   
         precision = 32,
         data_padsize= None,
         data_cropsize= None,
@@ -81,8 +81,8 @@ class SegModel(pl.LightningModule):
         loss = self.lossfn(yhat, y)
         metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
 
-        self.log('loss', loss, on_step=True, prog_bar=True)
-        self.log('metric', metric, on_step=True, prog_bar=True)
+        self.log('loss', loss, prog_bar=True)
+        self.log('metric', metric, prog_bar=True)
         self.logger.experiment.log({'image_train' : wb_mask(x, yhat, y)}) # wandb.log({'train' : wb_mask(x, yhat, y)})
         return {'loss': loss}
     
@@ -97,8 +97,8 @@ class SegModel(pl.LightningModule):
         loss = self.lossfn(yhat, y)
         metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
 
-        self.log('loss_val', loss, on_step=True, prog_bar=True)
-        self.log('metric_val', metric, on_step=True, prog_bar=True)
+        self.log('loss_val', loss, prog_bar=True)
+        self.log('metric_val', metric, prog_bar=True)
         self.logger.experiment.log({'image_val' : wb_mask(x, yhat, y)})
         return {'loss_val': loss}    
 
@@ -111,8 +111,8 @@ class SegModel(pl.LightningModule):
             optimizer = torch.optim.Adam(self.net.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)    
         else:
-            optimizer = torch.optim.SGD(self.net.parameters(), lr=0, momentum=0.9)
-            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=200, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
+            optimizer = torch.optim.SGD(self.net.parameters(), lr=1e-7, momentum=0.9)
+            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=50, T_mult=2, eta_max=0.01, T_up=10, gamma=0.5)
         return {'optimizer': optimizer,
                 'lr_scheduler': {'scheduler': scheduler,
                                  'monitor': 'loss_val'}
@@ -129,7 +129,7 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--data_patchsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch: recommand (A * 2^n)")
         parser.add_argument("--batch_size", type=int, default=None, help="batch_size, if None, searching will be done")
         parser.add_argument("--lossfn", type=str, default='CE', help="[CELoss, DiceCELoss, MSE, ...], see losses.py")
-        parser.add_argument("--net", type=str, default='segunet', help="Networks, see nets.py")
+        parser.add_argument("--net", type=str, default='unet_eb5_batch', help="Networks, see nets.py")
         parser.add_argument("--net_inputch", type=int, default=1, help='dimension of input channel')
         parser.add_argument("--net_outputch", type=int, default=2, help='dimension of output channel')        
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
@@ -239,7 +239,8 @@ def main(args: Namespace):
     
     wandb.init(name=args.experiment_name)
     wandb.run.name = args.experiment_name + wandb.run.id
-    wandb.config.update(args, allow_val_change=True) 
+    wandb.config.update(args, allow_val_change=True)
+    wandb.watch(net, log="all", log_freq=100, log_graph=True)
     
     Checkpoint_callback = ModelCheckpoint(verbose=True, 
                                           monitor='loss_val',
@@ -253,7 +254,6 @@ def main(args: Namespace):
     # 3 INIT TRAINER
     # ------------------------
     trainer = pl.Trainer.from_argparse_args(args,
-#                                             accelerator=accelerator,
                                             amp_backend='native',
                                             gpus = -1,
                                             sync_batchnorm =True,
@@ -261,7 +261,6 @@ def main(args: Namespace):
                                                        LearningRateMonitor(),
                                                        StochasticWeightAveraging(),
                                                        EarlyStopping(monitor='loss_val',patience=200),
-#                                                        EarlyStopping(monitor='metric_val',patience=200),
                                                       ],
                                             auto_scale_batch_size='power',
                                             weights_summary='top', 
@@ -274,7 +273,7 @@ def main(args: Namespace):
                                            )
     
     myData = MyDataModule.from_argparse_args(args)
-    if args.batch_size ==None:
+    if args.batch_size == None:
         trainer.tune(model,datamodule=myData)
     trainer.fit(model,datamodule=myData)
     
