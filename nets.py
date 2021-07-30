@@ -94,10 +94,12 @@ class manet_eb5_batch(nn.Module):
                         classes=self.net_outputch,
                         activation=None,
                         aux_params=None)
-    
-#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b5_2class.pt')
-#         self.net.load_state_dict(weight['net_state_dict'])
-
+        try:
+            weight = torch.load('NetNone_Lossdicece_Normws_Prefixcase1_.pt')
+            self.net.load_state_dict(weight['net_state_dict'])
+        except:
+            pass
+        
     def forward(self,x):
         return self.net(x)    
 

@@ -90,7 +90,8 @@ class SegModel(pl.LightningModule):
         x,y  = batch['x'], batch['y']
         
 #         yhat = self(x) # changed to sliding window method
-        roi_size = self.data_patchsize if isinstance(self.data_patchsize, int) else int(self.data_patchsize.split('_')[0]) 
+        roi_size = self.data_patchsize if isinstance(self.data_patchsize, int) else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1])) 
+        print('roi_size sliding',roi_size)
         yhat = sliding_window_inference(inputs=x,roi_size=roi_size,sw_batch_size=4,predictor=self.net,overlap=0.5,mode='constant')
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
@@ -202,6 +203,7 @@ def labels():
     return l
 
 def wb_mask(x, yhat, y, samples=2):
+    
     x = torchvision.utils.make_grid(x[:samples].cpu().detach(),normalize=True).permute(1,2,0)
     y = torchvision.utils.make_grid(y[:samples].cpu().detach()).permute(1,2,0)
     yhat = torchvision.utils.make_grid(torch.argmax(yhat[:samples],1).unsqueeze(1).cpu()).permute(1,2,0) if yhat.shape[1]>1 else \
