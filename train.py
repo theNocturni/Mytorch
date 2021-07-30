@@ -32,7 +32,7 @@ class SegModel(pl.LightningModule):
         data_dir: str,
         data_module = 'dataset',
         batch_size: int = 1,
-        finetune = True,
+        lr = None,
         gpus = -1,
         net_inputch = 1,
         net_outputch = 1,
@@ -50,7 +50,6 @@ class SegModel(pl.LightningModule):
         self.data_dir = data_dir
         self.data_module = data_module
         self.batch_size = batch_size
-        self.finetune = finetune
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch
         self.precision = precision
@@ -58,6 +57,7 @@ class SegModel(pl.LightningModule):
         self.data_cropsize = data_cropsize
         self.data_resize = data_resize
         self.data_patchsize = data_patchsize
+        self.lr =lr
         
         # loss       
         fn_call = getattr(losses, lossfn)
@@ -91,7 +91,6 @@ class SegModel(pl.LightningModule):
         
 #         yhat = self(x) # changed to sliding window method
         roi_size = int(self.data_patchsize) if len(self.data_patchsize.split('_'))==1 else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1]))
-        print('roi_size:',roi_size)
         yhat = sliding_window_inference(inputs=x,roi_size=roi_size,sw_batch_size=4,predictor=self.net,overlap=0.5,mode='constant')
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
@@ -107,7 +106,7 @@ class SegModel(pl.LightningModule):
         mode : finetune --> Adam with lr = 1e-4
         mode : CosineAnnealingWarmup (default) --> SGD with varying lr
         """
-        if self.finetune == 'True':
+        if self.lr != 0:
             optimizer = torch.optim.Adam(self.net.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)    
         else:
@@ -133,7 +132,7 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--net_inputch", type=int, default=1, help='dimension of input channel')
         parser.add_argument("--net_outputch", type=int, default=2, help='dimension of output channel')        
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
-        parser.add_argument("--finetune", type=str, default='False', help="Set Adam with lr=1e-4")        
+        parser.add_argument("--lr", type=float, default=0, help="Set learning rate of Adam optimzer. Default lr=1e-4")        
         parser.add_argument("--experiment_name", type=str, default=None, help='Postfix name of experiment')         
         return parser
 

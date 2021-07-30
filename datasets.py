@@ -205,8 +205,6 @@ def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=No
             data_patchsize_w = int(data_patchsize.split('_')[1])
             transform.append(albu.RandomCrop(height=data_patchsize_h, width=data_patchsize_w, always_apply=True))
             
-    print(transform)
-
     return albu.Compose(transform)
 
 def augmentation_train():
@@ -224,13 +222,13 @@ def augmentation_train():
         albu.RandomFog(fog_coef_lower=0.1, fog_coef_upper=.3, alpha_coef=0.04, p=0.3),
         albu.MotionBlur(blur_limit=3, p=0.3),
         albu.MedianBlur(blur_limit=3, p=0.3),
-        albu.GlassBlur(sigma=0.1, max_delta=2, p=0.3), 
+        albu.GlassBlur(sigma=0.1, max_delta=1, p=0.3), 
         ],p=0.1),
         
         albu.OneOf([
         albu.GaussNoise(var_limit=0.02, mean=0, p=0.5),
         albu.MultiplicativeNoise(multiplier=(0.98, 1.02), p=0.5),
-        albu.ISONoise(color_shift=(0.01, 0.03),intensity=(0.1, 0.3),p=0.5),
+        albu.ISONoise(color_shift=(0.01, 0.02),intensity=(0.1, 0.3),p=0.5),
         ],p=0.3),
         
         albu.OneOf([
