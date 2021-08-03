@@ -2,7 +2,8 @@
 - pytorch-lighting based segmentation model
 - support sweeps using wandb
 
-# HOW TO USE
+# HOW TO USE 
+## Training
 ```python 
 usage: train.py [-h] [--project PROJECT] [--data_dir DATA_DIR]
                 [--data_module DATA_MODULE] [--data_padsize DATA_PADSIZE]
@@ -32,3 +33,5 @@ optional arguments:
   --precision PRECISION              amp will be set when 16 is given
   --lr LR                            Set learning rate of Adam optimzer.
   --experiment_name EXPERIMENT_NAME  Postfix name of experiment```
+
+## Testing
