@@ -1,5 +1,7 @@
 # Mytorch for segmentation
-- pytorch-lighting based segmentation model
+## Key features
+- pytorch-lighting based segmentation model with tricks
+- easy to train segmentation
 - support sweeps using wandb
 
 # HOW TO USE 
