@@ -5,7 +5,7 @@ from torch.nn import init
 import monai
 import segmentation_models_pytorch as smp
 
-groupnorm_parameter = 4
+groupnorm_parameter = 16
 
 def init_weights(net, init_type='normal', gain=0.02):
     def init_func(m):
@@ -57,7 +57,7 @@ def bn2group(module):
     num_groups = 16 # hyper_parameter of GroupNorm
     module_output = module
     if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
-        if module.num_feature/num_groups <1:
+        if module.num_features/num_groups <1:
             module_output = torch.nn.GroupNorm(1,
                                            module.num_features,
                                            module.eps, 
@@ -86,6 +86,29 @@ def bn2group(module):
 
     del module
     return module_output
+
+# def conv2ws(module):
+#     module_output = module
+#     if isinstance(module, torch.nn.modules.BatchNorm):
+#         module_output = torch.nn.InstanceNorm2d(module.num_features,
+#                                                 module.eps, module.momentum,
+#                                                 module.affine,
+#                                                 module.track_running_stats)
+#         if module.affine:
+#             with torch.no_grad():
+#                 module_output.weight = module.weight
+#                 module_output.bias = module.bias
+#         module_output.running_mean = module.running_mean
+#         module_output.running_var = module.running_var
+#         module_output.num_batches_tracked = module.num_batches_tracked
+#         if hasattr(module, "qconfig"):
+#             module_output.qconfig = module.qconfig
+
+#     for name, child in module.named_children():
+#         module_output.add_module(name, bn2instance(child))
+
+#     del module
+#     return module_output
 
 class manet_eb5(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
@@ -354,7 +377,7 @@ def iwt(vres):
 
 
 class waveletunet_base(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=4, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=2, num_c=8, Attention=False, RCNN=False, t=2):
         super(waveletunet_base,self).__init__()
         self.Attention = Attention
         self.RCNN = RCNN
@@ -452,28 +475,28 @@ class waveletunet_base(nn.Module):
         return d1
 
 class waveletunet_att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=4, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=8, Attention=False, RCNN=False, t=2):
         super(waveletunet_att,self).__init__()
         
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=4, Attention=True, RCNN=False, t=2)
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=False, t=2)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat
 
 class waveletunet_r2(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=3,num_c=4, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=8, Attention=False, RCNN=False, t=2):
         super(waveletunet_r2,self).__init__()
         
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=4, Attention=False, RCNN=True, t=2)
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=False, RCNN=True, t=2)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat
 
 class waveletunet_r2att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=3,num_c=4, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=8, Attention=False, RCNN=False, t=2):
         super(waveletunet_r2att,self).__init__()
         
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=4, Attention=True, RCNN=True, t=2)
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=True, t=2)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat

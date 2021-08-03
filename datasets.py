@@ -222,7 +222,8 @@ def augmentation_train():
         albu.RandomFog(fog_coef_lower=0.1, fog_coef_upper=.3, alpha_coef=0.04, p=0.3),
         albu.MotionBlur(blur_limit=3, p=0.3),
         albu.MedianBlur(blur_limit=3, p=0.3),
-        albu.GlassBlur(sigma=0.1, max_delta=1, p=0.3), 
+        albu.GlassBlur(sigma=0.1, max_delta=1, p=0.3),
+        albu.Sharpen(alpha=(0.1, 0.3), lightness=(0.8, 1.0), p=0.3)
         ],p=0.1),
         
         albu.OneOf([

@@ -139,8 +139,8 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--data_resize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
         parser.add_argument("--data_patchsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch: recommand (A * 2^n)")
         parser.add_argument("--batch_size", type=int, default=None, help="batch_size, if None, searching will be done")
-        parser.add_argument("--lossfn", type=str, default='CE', help="[CELoss, DiceCELoss, MSE, ...], see losses.py")
-        parser.add_argument("--net", type=str, default='unet_eb5_batch', help="Networks, see nets.py")
+        parser.add_argument("--lossfn", type=str, default='CE', help="class of the loss function[CELoss, DiceCELoss, MSE, ...], see losses.py")
+        parser.add_argument("--net", type=str, default='unet_eb5_batch', help="Class of the Networks, see nets.py")
         parser.add_argument("--net_inputch", type=int, default=1, help='dimensions of network input channel')
         parser.add_argument("--net_outputch", type=int, default=2, help='dimensions of network output channel')          
         parser.add_argument("--net_norm", type=str, default='batch', help='net normalization, [batch,instance,group]')          
@@ -241,7 +241,7 @@ def main(args: Namespace):
         model = SegModel.load_from_checkpoint(checkpoint_path = ckpt[-1],**vars(args))
         print(ckpt[-1],'is loaded')
     assert args.project != None, "You should set wandb-logger project name by option --project [PROJECT_NAME]"
-        
+    print(model)
     print('project', args.project)
     
     # ------------------------
@@ -272,23 +272,23 @@ def main(args: Namespace):
     # ------------------------
     trainer = pl.Trainer.from_argparse_args(args,
                                             amp_backend='native',
-                                            gpus = -1,
-                                            sync_batchnorm =True,
+                                            auto_scale_batch_size='power',
                                             callbacks=[Checkpoint_callback,
                                                        LearningRateMonitor(),
                                                        StochasticWeightAveraging(),
                                                        EarlyStopping(monitor='loss_val',patience=200),
                                                       ],
-                                            auto_scale_batch_size='power',
-                                            weights_summary='top', 
-                                            log_gpu_memory='min_max',
-                                            max_epochs=2000,
                                             deterministic=True,
+                                            gpus = -1,
+                                            gradient_clip_val=0.5,
+                                            log_gpu_memory='min_max',
+                                            logger=wb_logger,
+                                            max_epochs=2000,
                                             num_processes=4,
                                             stochastic_weight_avg=True,
-                                            logger=wb_logger
+                                            sync_batchnorm =True,
+                                            weights_summary='top', 
                                            )
-    
     
     myData = MyDataModule.from_argparse_args(args)
     if args.batch_size == None:
