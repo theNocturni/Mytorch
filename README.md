@@ -32,6 +32,7 @@ optional arguments:
   --net_ckpt NET_CKPT                path to checkpoint, ex) logs/[PROJECT]/[ID]
   --precision PRECISION              amp will be set when 16 is given
   --lr LR                            Set learning rate of Adam optimzer.
-  --experiment_name EXPERIMENT_NAME  Postfix name of experiment```
+  --experiment_name EXPERIMENT_NAME  Postfix name of experiment
+```
 
 ## Testing
