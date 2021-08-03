@@ -38,7 +38,8 @@ class SegModel(pl.LightningModule):
         net_inputch = 1,
         net_outputch = 1,
         lossfn = 'CELoss',
-        net = 'unet_eb5_batch',   
+        net = 'unet_eb5_batch',
+        net_norm = 'batch',
         precision = 32,
         data_padsize= None,
         data_cropsize= None,
@@ -54,6 +55,7 @@ class SegModel(pl.LightningModule):
         self.batch_size = batch_size
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch
+        self.net_norm = net_norm
         self.precision = precision
         self.data_padsize = data_padsize
         self.data_cropsize = data_cropsize
@@ -68,6 +70,13 @@ class SegModel(pl.LightningModule):
         # net
         fn_call = getattr(nets, net)
         self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch)
+        
+        if self.net_norm == 'instance':
+            self.net = nets.bn2instance(self.net)
+            print('net_norms were replaced to instance normalizations')
+        elif self.net_norm == 'group':
+            self.net = nets.bn2group(self.net)
+            print('net_norms were replaced to group normalizations')           
         
         # metric
         self.metric = torchmetrics.F1(self.net_outputch)
@@ -110,10 +119,9 @@ class SegModel(pl.LightningModule):
         """
         if self.lr != 0:
             optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=50, min_lr=1e-6)    
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.75, patience=100, min_lr=1e-6)    
         else:
             optimizer = torch.optim.SGD(self.net.parameters(), lr=1e-7, weight_decay = 0.0005, momentum=0.9)
-#             optimizer = torch.optim.RMSprop(self.net.parameters(), lr=1e-7, momentum=0.9)
             scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
         return {'optimizer': optimizer,
                 'lr_scheduler': {'scheduler': scheduler,
@@ -134,7 +142,8 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--lossfn", type=str, default='CE', help="[CELoss, DiceCELoss, MSE, ...], see losses.py")
         parser.add_argument("--net", type=str, default='unet_eb5_batch', help="Networks, see nets.py")
         parser.add_argument("--net_inputch", type=int, default=1, help='dimension of input channel')
-        parser.add_argument("--net_outputch", type=int, default=2, help='dimension of output channel')        
+        parser.add_argument("--net_outputch", type=int, default=2, help='dimension of output channel')          
+        parser.add_argument("--net_norm", type=str, default='batch', help='net normalization')          
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
         parser.add_argument("--lr", type=float, default=0, help="Set learning rate of Adam optimzer.")        
         parser.add_argument("--experiment_name", type=str, default=None, help='Postfix name of experiment')         
@@ -240,7 +249,7 @@ def main(args: Namespace):
     .format(args.data_dir.split('/')[-1], args.net, args.net_inputch, args.net_outputch, args.lossfn, args.lr, args.precision,args.data_patchsize,args.experiment_name)
     print('Current Experiment:',args.experiment_name)
     
-    wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name, project=args.project)
+    wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name, project=args.project, log_model = True)
     wb_logger.log_hyperparams(args)
     
 #     wandb.init(name=args.experiment_name)

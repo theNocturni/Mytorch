@@ -5,7 +5,7 @@ from torch.nn import init
 import monai
 import segmentation_models_pytorch as smp
 
-groupnorm_parameter = 16
+groupnorm_parameter = 4
 
 def init_weights(net, init_type='normal', gain=0.02):
     def init_func(m):
@@ -54,7 +54,7 @@ def bn2instance(module):
     return module_output
 
 def bn2group(module):
-    num_groups = 16 # hyper_parameter of GroupNorm
+    num_groups = 4 # hyper_parameter of GroupNorm
     module_output = module
     if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
         module_output = torch.nn.GroupNorm(num_groups,
@@ -78,9 +78,9 @@ def bn2group(module):
     del module
     return module_output
 
-class manet_eb5_batch(nn.Module):
+class manet_eb5(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(manet_eb5_batch, self).__init__()        
+        super(manet_eb5, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.MAnet(
@@ -95,65 +95,17 @@ class manet_eb5_batch(nn.Module):
                         activation=None,
                         aux_params=None)
         try:
-            weight = torch.load('NetNone_Lossdicece_Normws_Prefixcase1_.pt')
+            weight = torch.load('NetNone_Lossdicece_Normws_Prefixcase4_.pt')
             self.net.load_state_dict(weight['net_state_dict'])
         except:
             pass
         
     def forward(self,x):
         return self.net(x)    
-
-class manet_eb5_instance(nn.Module):
-    def __init__(self, net_inputch=3, net_outputch=2):
-        super(manet_eb5_instance, self).__init__()        
-        self.net_inputch = net_inputch
-        self.net_outputch = net_outputch  
-        self.net = smp.MAnet(
-                        encoder_name='timm-efficientnet-b5',
-                        encoder_depth=5,
-                        encoder_weights='imagenet',
-                        decoder_use_batchnorm=True,
-                        decoder_channels=(256, 128, 64, 32, 16),
-                        decoder_pab_channels=64,
-                        in_channels=self.net_inputch, 
-                        classes=self.net_outputch,
-                        activation=None,
-                        aux_params=None)
-
-#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b5_2class.pt')
-#         self.net.load_state_dict(weight['net_state_dict'])
-
-        self.net = bn2instance(self.net)
-    def forward(self,x):
-        return self.net(x)    
     
-class manet_eb5_group(nn.Module):
+class unet_eb5(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
-        super(manet_eb5_group, self).__init__()        
-        self.net_inputch = net_inputch
-        self.net_outputch = net_outputch  
-        self.net = smp.MAnet(
-                        encoder_name='timm-efficientnet-b5',
-                        encoder_depth=5,
-                        encoder_weights='imagenet',
-                        decoder_use_batchnorm=True,
-                        decoder_channels=(256, 128, 64, 32, 16),
-                        decoder_pab_channels=64,
-                        in_channels=self.net_inputch, 
-                        classes=self.net_outputch,
-                        activation=None,
-                        aux_params=None)
-
-#         weight = torch.load('NetMANet_Lossboundaryce_Normws_Prefixmanet_b5_2class.pt')
-#         self.net.load_state_dict(weight['net_state_dict'])
-
-        self.net = bn2group(self.net)
-    def forward(self,x):
-        return self.net(x)        
-    
-class unet_eb5_batch(nn.Module):
-    def __init__(self, net_inputch=3, net_outputch=2):
-        super(unet_eb5_batch, self).__init__()        
+        super(unet_eb5, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch  
         self.net = smp.Unet(
@@ -166,40 +118,6 @@ class unet_eb5_batch(nn.Module):
     def forward(self,x):
         return self.net(x)    
 
-class unet_eb5_instance(nn.Module):
-    def __init__(self, net_inputch=3, net_outputch=2):
-        super(unet_eb5_instance, self).__init__()        
-        self.net_inputch = net_inputch
-        self.net_outputch = net_outputch  
-        self.net = smp.Unet(
-                        encoder_name='timm-efficientnet-b5',
-                        decoder_use_batchnorm = True,
-                        decoder_attention_type = 'scse',
-                        encoder_depth=5,
-                        in_channels=self.net_inputch, 
-                        classes=self.net_outputch,)
-        self.net = bn2instance(self.net)
-
-    def forward(self,x):
-        return self.net(x)    
-
-class unet_eb5_group(nn.Module):
-    def __init__(self, net_inputch=3, net_outputch=2):
-        super(unet_eb5_group, self).__init__()        
-        self.net_inputch = net_inputch
-        self.net_outputch = net_outputch  
-        self.net = smp.Unet(
-                        encoder_name='timm-efficientnet-b5',
-                        decoder_use_batchnorm = True,
-                        decoder_attention_type = 'scse',
-                        encoder_depth=5,
-                        in_channels=self.net_inputch, 
-                        classes=self.net_outputch,)
-        self.net = bn2group(self.net)
-
-    def forward(self,x):
-        return self.net(x)    
-        
 class manet_elb4_batch(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
         super(manet_elb4_batch, self).__init__()        
@@ -221,7 +139,7 @@ class manet_elb4_batch(nn.Module):
         return self.net(x)    
     
 class segresnet(nn.Module):
-    def __init__(self,net_inputch=1,net_outputch=1):
+    def __init__(self,net_inputch=3,net_outputch=3):
         super(segresnet, self).__init__()        
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch
@@ -269,66 +187,168 @@ def iwt(vres):
     return res
 
 # class waveletunet_batch(nn.Module):
-#     def __init__(self,net_inputch=3,net_outputch=2,num_c=16):
-#         super(waveletunet_batch, self).__init__()
-#         c = num_c
+#     def __init__(self,net_inputch=3,net_outputch=2,num_c=4):
+#         super(waveletunet_batch,self).__init__()        
         
-#         self.norm0 = nn.BatchNorm2d(4*net_outputch) 
-#         self.norm1 = nn.BatchNorm2d(c) 
-#         self.norm2 = nn.BatchNorm2d(4*c) 
-#         self.norm3 = nn.BatchNorm2d(16*c) 
-#         self.norm4 = nn.BatchNorm2d(64*c) 
+#         self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
+#         self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*4)
+#         self.Conv3 = conv_block(ch_in=num_c*16,ch_out=num_c*16)
+#         self.Conv4 = conv_block(ch_in=num_c*64,ch_out=num_c*64)
+#         self.Conv5 = conv_block(ch_in=num_c*256,ch_out=num_c*256)
 
-#         self.conv1 = nn.Conv2d(4*net_inputch,c,3,1,padding=1)
-#         self.conv2 = nn.Conv2d(4*c,4*c,3,1,padding=1)        
-#         self.conv3 = nn.Conv2d(16*c,16*c,3,1,padding=1)  
-#         self.conv4 = nn.Conv2d(64*c,64*c,3,1,padding=1)
+#         self.Up_conv5 = conv_block(ch_in=num_c*128, ch_out=num_c*64)
+#         self.Up_conv4 = conv_block(ch_in=num_c*32, ch_out=num_c*16)
+#         self.Up_conv3 = conv_block(ch_in=num_c*8, ch_out=num_c*4)
+#         self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
 
-#         self.convd1 = nn.Conv2d(c,4*net_outputch,3,1,padding=1)
-#         self.convd2 = nn.Conv2d(2*c,c,3,1,padding=1) 
-#         self.convd3 = nn.Conv2d(8*c,4*c,3,1,padding=1)        
-#         self.convd4 = nn.Conv2d(32*c,16*c,3,1,padding=1)  
-            
-#         self.relu = nn.LeakyReLU(0.2)        
-#         self.convd_last = torch.nn.Conv2d(net_outputch,net_outputch,1,padding=0, bias=False)
+#         self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
 
-#     def forward(self, x):
+#     def forward(self,x):
+# #         print('x',x.shape)
+
+#         # encoding path
+#         x1 = self.Conv1(x)
+# #         print('x1',x1.shape)
+
+#         x2 = wt(x1)
+# #         x2 = self.Maxpool(x1)
+#         x2 = self.Conv2(x2)
+# #         print('x2',x2.shape)
+
+#         x3 = wt(x2)
+# #         x3 = self.Maxpool(x2)
+#         x3 = self.Conv3(x3)
+# #         print('x3',x3.shape)
+
+#         x4 = wt(x3)
+# #         x4 = self.Maxpool(x3)
+#         x4 = self.Conv4(x4)
+# #         print('x4',x4.shape)
+
+#         x5 = wt(x4)
+# #         x5 = self.Maxpool(x4)
+#         x5 = self.Conv5(x5)
+# #         print('x5',x5.shape)
+
+#         # decoding + concat path
+#         d5=iwt(x5)
+# #         d5 = self.Up5(x5)
+#         d5 = torch.cat((x4,d5),dim=1)
+#         d5 = self.Up_conv5(d5)
+# #         print('d5',d5.shape)
+
+#         d4=iwt(d5)       
+# #         d4 = self.Up4(d5)
+#         d4 = torch.cat((x3,d4),dim=1)
+#         d4 = self.Up_conv4(d4)
+# #         print('d4',d4.shape)
+
+#         d3=iwt(d4)       
+# #         d3 = self.Up3(d4)
+#         d3 = torch.cat((x2,d3),dim=1)
+#         d3 = self.Up_conv3(d3)
+# #         print('d3',d3.shape)
+
+#         d2=iwt(d3)       
+# #         d2 = self.Up2(d3)
+#         d2 = torch.cat((x1,d2),dim=1)
+#         d2 = self.Up_conv2(d2)
+# #         print('d2',d2.shape)
+
+#         d1 = self.Conv_1x1(d2)
+# #         print('d1',d1.shape)
+
+#         return d1
+
+# class Attwaveletunet_batch(nn.Module):
+#     def __init__(self,net_inputch=3,net_outputch=2,num_c=4):
+#         super(Attwaveletunet_batch,self).__init__()        
         
-#         w1=wt(x)
-#         c1=self.relu(self.norm1(self.conv1(w1)))
-                
-#         w2=wt(c1)
-#         c2=self.relu(self.norm2(self.conv2(w2)))
-        
-#         w3=wt(c2)
-#         c3=self.relu(self.norm3(self.conv3(w3)))
-        
-#         w4=wt(c3)
-#         c4=self.relu(self.norm4(self.conv4(w4)))
-#         c5=self.relu(self.norm4(self.conv4(c4)))
-#         c6=self.norm4(self.conv4(c5))
-#         ic4=self.relu(c6+w4)
+#         self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
+#         self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*4)
+#         self.Conv3 = conv_block(ch_in=num_c*16,ch_out=num_c*16)
+#         self.Conv4 = conv_block(ch_in=num_c*64,ch_out=num_c*64)
+#         self.Conv5 = conv_block(ch_in=num_c*256,ch_out=num_c*256)
 
-#         iw4=iwt(ic4)
-#         iw4=torch.cat([c3,iw4],1)
-#         ic3=self.relu(self.norm3(self.convd4(iw4)))
+#         self.Up_conv5 = conv_block(ch_in=num_c*128, ch_out=num_c*64)
+#         self.Up_conv4 = conv_block(ch_in=num_c*32, ch_out=num_c*16)
+#         self.Up_conv3 = conv_block(ch_in=num_c*8, ch_out=num_c*4)
+#         self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
         
-#         iw3=iwt(ic3)
-#         iw3=torch.cat([c2,iw3],1)
-#         ic2=self.relu(self.norm2(self.convd3(iw3)))
+#         self.Att5 = Attention_block(F_g=num_c*64,F_l=num_c*64,F_int=num_c*64)
+#         self.Att4 = Attention_block(F_g=num_c*16,F_l=num_c*16,F_int=num_c*16)
+#         self.Att3 = Attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
+#         self.Att2 = Attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
         
-#         iw2=iwt(ic2)
-#         iw2=torch.cat([c1,iw2],1)
-#         ic1=self.relu(self.norm1(self.convd2(iw2)))
-#         iw1=self.relu(self.norm0(self.convd1(ic1)))
+#         self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
 
-#         y=iwt(iw1)
-#         y = self.convd_last(y)
-#         return y    
+#     def forward(self,x):
+# #         print('x',x.shape)
 
-class waveletunet_batch(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=4):
-        super(waveletunet_batch,self).__init__()        
+#         # encoding path
+#         x1 = self.Conv1(x)
+# #         print('x1',x1.shape)
+
+#         x2 = wt(x1)
+# #         x2 = self.Maxpool(x1)
+#         x2 = self.Conv2(x2)
+# #         print('x2',x2.shape)
+
+#         x3 = wt(x2)
+# #         x3 = self.Maxpool(x2)
+#         x3 = self.Conv3(x3)
+# #         print('x3',x3.shape)
+
+#         x4 = wt(x3)
+# #         x4 = self.Maxpool(x3)
+#         x4 = self.Conv4(x4)
+# #         print('x4',x4.shape)
+
+#         x5 = wt(x4)
+# #         x5 = self.Maxpool(x4)
+#         x5 = self.Conv5(x5)
+# #         print('x5',x5.shape)
+
+#         # decoding + concat path
+#         d5=iwt(x5)
+# #         d5 = self.Up5(x5)
+#         x4 = self.Att5(g=d5,x=x4)
+#         d5 = torch.cat((x4,d5),dim=1)
+#         d5 = self.Up_conv5(d5)
+# #         print('d5',d5.shape)
+
+#         d4=iwt(d5)       
+# #         d4 = self.Up4(d5)
+#         x3 = self.Att4(g=d4,x=x3)
+#         d4 = torch.cat((x3,d4),dim=1)
+#         d4 = self.Up_conv4(d4)
+# #         print('d4',d4.shape)
+
+#         d3=iwt(d4)       
+# #         d3 = self.Up3(d4)
+#         x2 = self.Att3(g=d3,x=x2)
+#         d3 = torch.cat((x2,d3),dim=1)
+#         d3 = self.Up_conv3(d3)
+# #         print('d3',d3.shape)
+
+#         d2=iwt(d3)       
+# #         d2 = self.Up2(d3)
+#         x1 = self.Att2(g=d2,x=x1)
+#         d2 = torch.cat((x1,d2),dim=1)
+#         d2 = self.Up_conv2(d2)
+# #         print('d2',d2.shape)
+
+#         d1 = self.Conv_1x1(d2)
+# #         print('d1',d1.shape)
+
+#         return d1
+
+
+class waveletunet_base(nn.Module):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=4, Attention=False, RCNN=False, t=2):
+        super(waveletunet_base,self).__init__()
+        self.Attention = Attention
+        self.RCNN = RCNN
         
         self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
         self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*4)
@@ -340,6 +360,24 @@ class waveletunet_batch(nn.Module):
         self.Up_conv4 = conv_block(ch_in=num_c*32, ch_out=num_c*16)
         self.Up_conv3 = conv_block(ch_in=num_c*8, ch_out=num_c*4)
         self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
+        
+        if self.Attention:
+            self.Att5 = Attention_block(F_g=num_c*64,F_l=num_c*64,F_int=num_c*64)
+            self.Att4 = Attention_block(F_g=num_c*16,F_l=num_c*16,F_int=num_c*16)
+            self.Att3 = Attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
+            self.Att2 = Attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
+
+        if self.RCNN:
+            self.RRCNN1 = RRCNN_block(ch_in=net_inputch,ch_out=num_c,t=t)
+            self.RRCNN2 = RRCNN_block(ch_in=num_c*4,ch_out=num_c*4,t=t)
+            self.RRCNN3 = RRCNN_block(ch_in=num_c*16,ch_out=num_c*16,t=t) 
+            self.RRCNN4 = RRCNN_block(ch_in=num_c*64,ch_out=num_c*64,t=t)      
+            self.RRCNN5 = RRCNN_block(ch_in=num_c*256,ch_out=num_c*256,t=t)
+
+            self.Up_RRCNN5 = RRCNN_block(ch_in=num_c*128, ch_out=num_c*64,t=t)
+            self.Up_RRCNN4 = RRCNN_block(ch_in=num_c*32, ch_out=num_c*16,t=t)
+            self.Up_RRCNN3 = RRCNN_block(ch_in=num_c*8, ch_out=num_c*4,t=t)
+            self.Up_RRCNN2 = RRCNN_block(ch_in=num_c*2,ch_out=num_c,t=t)
 
         self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
 
@@ -347,52 +385,56 @@ class waveletunet_batch(nn.Module):
 #         print('x',x.shape)
 
         # encoding path
-        x1 = self.Conv1(x)
+        x1 = self.Conv1(x) if self.RCNN==False else self.RRCNN1(x)
 #         print('x1',x1.shape)
 
         x2 = wt(x1)
 #         x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
+        x2 = self.Conv2(x2) if self.RCNN==False else self.RRCNN2(x2)
 #         print('x2',x2.shape)
 
         x3 = wt(x2)
 #         x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)
+        x3 = self.Conv3(x3) if self.RCNN==False else self.RRCNN3(x3)
 #         print('x3',x3.shape)
 
         x4 = wt(x3)
 #         x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)
+        x4 = self.Conv4(x4) if self.RCNN==False else self.RRCNN4(x4)
 #         print('x4',x4.shape)
 
         x5 = wt(x4)
 #         x5 = self.Maxpool(x4)
-        x5 = self.Conv5(x5)
+        x5 = self.Conv5(x5) if self.RCNN==False else self.RRCNN5(x5)
 #         print('x5',x5.shape)
 
         # decoding + concat path
         d5=iwt(x5)
-#         d5 = self.Up5(x5)
+#         d5 = self.Up5(d5)
+        x4 = self.Att5(g=d5,x=x4) if self.Attention == True else x4
         d5 = torch.cat((x4,d5),dim=1)
-        d5 = self.Up_conv5(d5)
+        d5 = self.Up_conv5(d5) if self.RCNN == False else self.Up_RRCNN5(d5)
 #         print('d5',d5.shape)
 
         d4=iwt(d5)       
 #         d4 = self.Up4(d5)
+        x3 = self.Att4(g=d4,x=x3) if self.Attention == True else x3
         d4 = torch.cat((x3,d4),dim=1)
-        d4 = self.Up_conv4(d4)
+        d4 = self.Up_conv4(d4) if self.RCNN == False else self.Up_RRCNN4(d4)
 #         print('d4',d4.shape)
 
         d3=iwt(d4)       
 #         d3 = self.Up3(d4)
+        x2 = self.Att3(g=d3,x=x2) if self.Attention == True else x2
         d3 = torch.cat((x2,d3),dim=1)
-        d3 = self.Up_conv3(d3)
+        d3 = self.Up_conv3(d3) if self.RCNN == False else self.Up_RRCNN3(d3)
 #         print('d3',d3.shape)
 
         d2=iwt(d3)       
 #         d2 = self.Up2(d3)
+        x1 = self.Att2(g=d2,x=x1) if self.Attention == True else x1
         d2 = torch.cat((x1,d2),dim=1)
-        d2 = self.Up_conv2(d2)
+        d2 = self.Up_conv2(d2) if self.RCNN == False else self.Up_RRCNN2(d2)
 #         print('d2',d2.shape)
 
         d1 = self.Conv_1x1(d2)
@@ -400,88 +442,32 @@ class waveletunet_batch(nn.Module):
 
         return d1
 
-class Attwaveletunet_batch(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=4):
-        super(Attwaveletunet_batch,self).__init__()        
+class waveletunet_att(nn.Module):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=4, Attention=False, RCNN=False, t=2):
+        super(waveletunet_att,self).__init__()
         
-        self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
-        self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*4)
-        self.Conv3 = conv_block(ch_in=num_c*16,ch_out=num_c*16)
-        self.Conv4 = conv_block(ch_in=num_c*64,ch_out=num_c*64)
-        self.Conv5 = conv_block(ch_in=num_c*256,ch_out=num_c*256)
-
-        self.Up_conv5 = conv_block(ch_in=num_c*128, ch_out=num_c*64)
-        self.Up_conv4 = conv_block(ch_in=num_c*32, ch_out=num_c*16)
-        self.Up_conv3 = conv_block(ch_in=num_c*8, ch_out=num_c*4)
-        self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
-        
-        self.Att5 = Attention_block(F_g=num_c*64,F_l=num_c*64,F_int=num_c*64)
-        self.Att4 = Attention_block(F_g=num_c*16,F_l=num_c*16,F_int=num_c*16)
-        self.Att3 = Attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
-        self.Att2 = Attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
-        
-        self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
-
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=4, Attention=True, RCNN=False, t=2)
     def forward(self,x):
-#         print('x',x.shape)
+        yhat = self.base_net(x)
+        return yhat
 
-        # encoding path
-        x1 = self.Conv1(x)
-#         print('x1',x1.shape)
+class waveletunet_r2(nn.Module):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=4, Attention=False, RCNN=False, t=2):
+        super(waveletunet_r2,self).__init__()
+        
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=4, Attention=False, RCNN=True, t=2)
+    def forward(self,x):
+        yhat = self.base_net(x)
+        return yhat
 
-        x2 = wt(x1)
-#         x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
-#         print('x2',x2.shape)
-
-        x3 = wt(x2)
-#         x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)
-#         print('x3',x3.shape)
-
-        x4 = wt(x3)
-#         x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)
-#         print('x4',x4.shape)
-
-        x5 = wt(x4)
-#         x5 = self.Maxpool(x4)
-        x5 = self.Conv5(x5)
-#         print('x5',x5.shape)
-
-        # decoding + concat path
-        d5=iwt(x5)
-#         d5 = self.Up5(x5)
-        x4 = self.Att5(g=d5,x=x4)
-        d5 = torch.cat((x4,d5),dim=1)
-        d5 = self.Up_conv5(d5)
-#         print('d5',d5.shape)
-
-        d4=iwt(d5)       
-#         d4 = self.Up4(d5)
-        x3 = self.Att4(g=d4,x=x3)
-        d4 = torch.cat((x3,d4),dim=1)
-        d4 = self.Up_conv4(d4)
-#         print('d4',d4.shape)
-
-        d3=iwt(d4)       
-#         d3 = self.Up3(d4)
-        x2 = self.Att3(g=d3,x=x2)
-        d3 = torch.cat((x2,d3),dim=1)
-        d3 = self.Up_conv3(d3)
-#         print('d3',d3.shape)
-
-        d2=iwt(d3)       
-#         d2 = self.Up2(d3)
-        x1 = self.Att2(g=d2,x=x1)
-        d2 = torch.cat((x1,d2),dim=1)
-        d2 = self.Up_conv2(d2)
-#         print('d2',d2.shape)
-
-        d1 = self.Conv_1x1(d2)
-#         print('d1',d1.shape)
-
-        return d1
+class waveletunet_r2att(nn.Module):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=4, Attention=False, RCNN=False, t=2):
+        super(waveletunet_r2att,self).__init__()
+        
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=4, Attention=True, RCNN=True, t=2)
+    def forward(self,x):
+        yhat = self.base_net(x)
+        return yhat
     
 # weight standardization
     
@@ -558,11 +544,11 @@ class Recurrent_block(nn.Module):
         return x1
         
 class RRCNN_block(nn.Module):
-    def __init__(self,ch_in,ch_out,t=2,norm='batch'):
+    def __init__(self,ch_in,ch_out,t=2):
         super(RRCNN_block,self).__init__()
         self.RCNN = nn.Sequential(
-            Recurrent_block(ch_out,t=t,norm=norm),
-            Recurrent_block(ch_out,t=t,norm=norm)
+            Recurrent_block(ch_out,t=t),
+            Recurrent_block(ch_out,t=t)
         )
         self.Conv_1x1 = nn.Conv2d(ch_in,ch_out,kernel_size=1,stride=1,padding=0)
         
@@ -573,7 +559,7 @@ class RRCNN_block(nn.Module):
 
 
 class single_conv(nn.Module):
-    def __init__(self,ch_in,ch_out,norm='batch'):
+    def __init__(self,ch_in,ch_out):
         super(single_conv,self).__init__()
 #         inplace = True
         inplace = False
