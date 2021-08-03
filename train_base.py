@@ -3,8 +3,7 @@ warnings.filterwarnings(action='ignore')
 
 from argparse import ArgumentParser, Namespace
 
-import os, random, glob
-from natsort import natsorted
+import os, random
 import numpy as np
 
 import torch
@@ -27,40 +26,39 @@ import torchmetrics
 from monai.inferers import sliding_window_inference
 
 class SegModel(pl.LightningModule):
-    def __init__(self,  data_dir: str,
-                        project: str,
-                        batch_size: int = 1,
-                        data_module = 'dataset',
-                        data_padsize= None,
-                        data_cropsize= None,
-                        data_resize= None,
-                        data_patchsize= None,
-                        experiment_name = None,
-                        gpus = -1,
-                        lossfn = 'CELoss',
-                        lr = None,
-                        net = 'unet_eb5_batch',
-                        net_inputch = 1,
-                        net_outputch = 1,
-                        net_norm = 'batch',
-                        net_ckpt = None,
-                        precision = 32,
-                        **kwargs):
+
+    def __init__(
+        self,
+        project: str,
+        data_dir: str,
+        data_module = 'dataset',
+        batch_size: int = 1,
+        lr = None,
+        gpus = -1,
+        net_inputch = 1,
+        net_outputch = 1,
+        lossfn = 'CELoss',
+        net = 'unet_eb5_batch',   
+        precision = 32,
+        data_padsize= None,
+        data_cropsize= None,
+        data_resize= None,
+        data_patchsize= None,
+        experiment_name = None,
+        **kwargs):
                 
         super().__init__(**kwargs)
-        self.batch_size = batch_size
+        self.project = project
         self.data_dir = data_dir
         self.data_module = data_module
+        self.batch_size = batch_size
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch
+        self.precision = precision
         self.data_padsize = data_padsize
         self.data_cropsize = data_cropsize
         self.data_resize = data_resize
         self.data_patchsize = data_patchsize
-        self.net_inputch = net_inputch
-        self.net_outputch = net_outputch
-        self.net_norm = net_norm
-        self.net_ckpt = net_ckpt
-        self.precision = precision
-        self.project = project
         self.lr =lr
         
         # loss       
@@ -70,13 +68,6 @@ class SegModel(pl.LightningModule):
         # net
         fn_call = getattr(nets, net)
         self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch)
-        
-        if self.net_norm == 'instance':
-            self.net = nets.bn2instance(self.net)
-            print('net_norms were replaced to instance normalizations')
-        elif self.net_norm == 'group':
-            self.net = nets.bn2group(self.net)
-            print('net_norms were replaced to group normalizations')           
         
         # metric
         self.metric = torchmetrics.F1(self.net_outputch)
@@ -119,9 +110,10 @@ class SegModel(pl.LightningModule):
         """
         if self.lr != 0:
             optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.75, patience=100, min_lr=1e-7)    
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=50, min_lr=1e-6)    
         else:
             optimizer = torch.optim.SGD(self.net.parameters(), lr=1e-7, weight_decay = 0.0005, momentum=0.9)
+#             optimizer = torch.optim.RMSprop(self.net.parameters(), lr=1e-7, momentum=0.9)
             scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
         return {'optimizer': optimizer,
                 'lr_scheduler': {'scheduler': scheduler,
@@ -141,10 +133,8 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--batch_size", type=int, default=None, help="batch_size, if None, searching will be done")
         parser.add_argument("--lossfn", type=str, default='CE', help="[CELoss, DiceCELoss, MSE, ...], see losses.py")
         parser.add_argument("--net", type=str, default='unet_eb5_batch', help="Networks, see nets.py")
-        parser.add_argument("--net_inputch", type=int, default=1, help='dimensions of network input channel')
-        parser.add_argument("--net_outputch", type=int, default=2, help='dimensions of network output channel')          
-        parser.add_argument("--net_norm", type=str, default='batch', help='net normalization, [batch,instance,group]')          
-        parser.add_argument("--net_ckpt", type=str, default=None, help='path to checkpoint, ex) logs/[PROJECT]/[ID]')          
+        parser.add_argument("--net_inputch", type=int, default=1, help='dimension of input channel')
+        parser.add_argument("--net_outputch", type=int, default=2, help='dimension of output channel')        
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
         parser.add_argument("--lr", type=float, default=0, help="Set learning rate of Adam optimzer.")        
         parser.add_argument("--experiment_name", type=str, default=None, help='Postfix name of experiment')         
@@ -230,17 +220,12 @@ def wb_mask(x, yhat, y, samples=2):
     "prediction" : {"mask_data" : yhat, "class_labels" : labels()},
     "ground truth" : {"mask_data" : y, "class_labels" : labels()}})
 
-
 def main(args: Namespace):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
     model = SegModel(**vars(args))
-    if args.net_ckpt is not None:
-        ckpt = natsorted(glob.glob(args.net_ckpt+'**/*.ckpt'))
-        model = SegModel.load_from_checkpoint(checkpoint_path = ckpt[-1],**vars(args))
-        print(ckpt[-1],'is loaded')
-    assert args.project != None, "You should set wandb-logger project name by option --project [PROJECT_NAME]"
+    assert args.project != None, "You should set wandb-logger project name by --project [PROJECT_NAME]"
         
     print('project', args.project)
     
@@ -252,13 +237,16 @@ def main(args: Namespace):
     
     args.experiment_name = "Dataset{}_Net{}_Netinputch{}_Netoutputch{}_Loss{}_Lr{}_Precision{}_Patchsize{}_Prefix{}_"\
     .format(args.data_dir.split('/')[-1], args.net, args.net_inputch, args.net_outputch, args.lossfn, args.lr, args.precision,args.data_patchsize,args.experiment_name)
-    print('Current Experiment:',args.experiment_name,'\n','*'*100)
+    print('Current Experiment:',args.experiment_name)
     
-    os.makedirs('logs',mode=0o777, exist_ok=True)
-    wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name, project=args.project, log_model = "all")
+    wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name, project=args.project)
     wb_logger.log_hyperparams(args)
-    wb_logger.watch(model,log="all", log_freq=1)
-        
+    
+#     wandb.init(name=args.experiment_name)
+#     wandb.run.name = args.experiment_name + wandb.run.id
+#     wandb.config.update(args, allow_val_change=True)
+#     wandb.watch(model, log="all", log_freq=100, log_graph=True)
+    
     Checkpoint_callback = ModelCheckpoint(verbose=True, 
                                           monitor='loss_val',
                                           mode='min',
@@ -288,7 +276,6 @@ def main(args: Namespace):
                                             stochastic_weight_avg=True,
                                             logger=wb_logger
                                            )
-    
     
     myData = MyDataModule.from_argparse_args(args)
     if args.batch_size == None:

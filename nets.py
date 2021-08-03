@@ -77,6 +77,7 @@ def bn2group(module):
         module_output.running_mean = module.running_mean
         module_output.running_var = module.running_var
         module_output.num_batches_tracked = module.num_batches_tracked
+        
         if hasattr(module, "qconfig"):
             module_output.qconfig = module.qconfig
 
