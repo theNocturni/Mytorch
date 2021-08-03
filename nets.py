@@ -54,14 +54,22 @@ def bn2instance(module):
     return module_output
 
 def bn2group(module):
-    num_groups = 4 # hyper_parameter of GroupNorm
+    num_groups = 16 # hyper_parameter of GroupNorm
     module_output = module
     if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
-        module_output = torch.nn.GroupNorm(num_groups,
+        if module.num_feature/num_groups <1:
+            module_output = torch.nn.GroupNorm(1,
                                            module.num_features,
                                            module.eps, 
                                            module.affine,
                                           )
+        else:
+            module_output = torch.nn.GroupNorm(num_groups,
+                               module.num_features,
+                               module.eps, 
+                               module.affine,
+                                          )
+
         if module.affine:
             with torch.no_grad():
                 module_output.weight = module.weight
