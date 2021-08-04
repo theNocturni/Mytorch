@@ -2,7 +2,7 @@
 ## Key features
 - End-to-end segmentation model with tricks based on pytorch-lighting 
 - Easy to train 2D segmentation, (Futurework 1D, 3D)
-- Support sweeps using wandb
+- Easy to tune hyper-parameters (Support sweeps using wandb)
 - Provides networks
 
 # HOW TO USE 
