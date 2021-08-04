@@ -131,13 +131,17 @@ class SegModel(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = ArgumentParser(parents=[parent_parser])
+        def none_or_str(value):
+            if value == 'None':
+                return None
+            return value
         parser.add_argument("--project", type=str, help="wandb project name, this will set your wandb project")
         parser.add_argument("--data_dir", type=str, help="path where dataset is stored, subfolders name should be x_train, y_train")
         parser.add_argument("--data_module", type=str,default='dataset', help="Data Module, see datasets.py")
-        parser.add_argument("--data_padsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
-        parser.add_argument("--data_cropsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
-        parser.add_argument("--data_resize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
-        parser.add_argument("--data_patchsize", type=str, default=None, help="input like this (height_width) : pad - crop - resize - patch: recommand (A * 2^n)")
+        parser.add_argument("--data_padsize", type=none_or_str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
+        parser.add_argument("--data_cropsize", type=none_or_str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
+        parser.add_argument("--data_resize", type=none_or_str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
+        parser.add_argument("--data_patchsize", type=none_or_str, default=None, help="input like this (height_width) : pad - crop - resize - patch: recommand (A * 2^n)")
         parser.add_argument("--batch_size", type=int, default=None, help="batch_size, if None, searching will be done")
         parser.add_argument("--lossfn", type=str, default='CE', help="class of the loss function[CELoss, DiceCELoss, MSE, ...], see losses.py")
         parser.add_argument("--net", type=str, default='unet_eb5_batch', help="Class of the Networks, see nets.py")
@@ -241,7 +245,6 @@ def main(args: Namespace):
         model = SegModel.load_from_checkpoint(checkpoint_path = ckpt[-1],**vars(args))
         print(ckpt[-1],'is loaded')
     assert args.project != None, "You should set wandb-logger project name by option --project [PROJECT_NAME]"
-    print(model)
     print('project', args.project)
     
     # ------------------------

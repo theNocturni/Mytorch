@@ -1,0 +1,80 @@
+program: train.py
+project: Retina
+method: bayes
+metric:
+  goal: minimize
+  name: loss_val
+parameters:
+  project:
+    distribution: categorical
+    values:
+    - Retina
+  data_dir:
+    distribution: categorical
+    values:
+    - /workspace/Retina/dataset/DRIVE
+  data_module:
+    distribution: categorical
+    values:
+    - dataset
+  experiment_name:
+    distribution: categorical
+    values:
+    - None
+  lossfn:
+    distribution: categorical
+    values:
+    - BoundaryCELoss
+    - CELoss
+    - FocalLoss
+    - BoundaryFocalLoss
+  net:
+    distribution: categorical
+    values:
+    - unet_eb5
+    - manet_eb5
+    - waveletunet_r2att
+    - waveletunet_r2
+    - waveletunet_att    
+  net_norm:
+    distribution: categorical
+    values:
+    - batch
+    - instance
+    - group    
+  net_inputch:
+    distribution: categorical
+    values:
+    - 3
+  net_outputch:
+    distribution: categorical
+    values:
+    - 3
+  data_padsize:
+    distribution: categorical
+    values:
+    - None
+  data_cropsize:
+    distribution: categorical
+    values:
+    - None
+  data_resize:
+    distribution: categorical
+    values:
+    - None
+  data_patchsize:
+    distribution: categorical
+    values:
+    - 160
+    - 128
+    - 96
+  precision:
+    distribution: categorical
+    values:
+    - 32
+    - 16
+  batch_size:
+    distribution: categorical
+    values:
+    - 24
+    - 16
