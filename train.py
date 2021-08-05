@@ -119,10 +119,10 @@ class SegModel(pl.LightningModule):
         """
         if self.lr != 0:
             optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.75, patience=100, min_lr=1e-7)    
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.9, patience=100, min_lr=1e-7)    
         else:
             optimizer = torch.optim.SGD(self.net.parameters(), lr=1e-7, weight_decay = 0.0005, momentum=0.9)
-            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.5)
+            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.9)
         return {'optimizer': optimizer,
                 'lr_scheduler': {'scheduler': scheduler,
                                  'monitor': 'loss_val'}
@@ -260,7 +260,7 @@ def main(args: Namespace):
     os.makedirs('logs',mode=0o777, exist_ok=True)
     wb_logger = pl_loggers.WandbLogger(save_dir='logs/', name=args.experiment_name, project=args.project, log_model = "all")
     wb_logger.log_hyperparams(args)
-    wb_logger.watch(model,log="all", log_freq=1)
+    wb_logger.watch(model,log="all", log_freq=10)
         
     Checkpoint_callback = ModelCheckpoint(verbose=True, 
                                           monitor='loss_val',
@@ -283,14 +283,14 @@ def main(args: Namespace):
                                                       ],
                                             deterministic=True,
                                             gpus = -1,
-                                            gradient_clip_val=0.5,
-                                            log_gpu_memory='min_max',
-                                            logger=wb_logger,
-                                            max_epochs=2000,
-                                            num_processes=4,
-                                            stochastic_weight_avg=True,
-                                            sync_batchnorm =True,
-                                            weights_summary='top', 
+                                            gradient_clip_val = 0.5,
+                                            logger = wb_logger,
+                                            log_every_n_steps=1,
+                                            max_epochs = 2000,
+                                            num_processes = 4,
+                                            stochastic_weight_avg = True,
+                                            sync_batchnorm = True,
+                                            weights_summary = 'top', 
                                            )
     
     myData = MyDataModule.from_argparse_args(args)

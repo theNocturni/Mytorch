@@ -77,4 +77,3 @@ parameters:
     distribution: categorical
     values:
     - 24
-    - 16

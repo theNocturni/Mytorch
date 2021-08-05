@@ -376,39 +376,138 @@ def iwt(vres):
 #         return d1
 
 
+# class waveletunet_base(nn.Module):
+#     def __init__(self,net_inputch=3,net_outputch=2, num_c=8, Attention=False, RCNN=False, t=2):
+#         super(waveletunet_base,self).__init__()
+#         self.Attention = Attention
+#         self.RCNN = RCNN
+        
+#         self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
+#         self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*4)
+#         self.Conv3 = conv_block(ch_in=num_c*16,ch_out=num_c*16)
+#         self.Conv4 = conv_block(ch_in=num_c*64,ch_out=num_c*64)
+#         self.Conv5 = conv_block(ch_in=num_c*256,ch_out=num_c*256)
+
+#         self.Up_conv5 = conv_block(ch_in=num_c*128, ch_out=num_c*64)
+#         self.Up_conv4 = conv_block(ch_in=num_c*32, ch_out=num_c*16)
+#         self.Up_conv3 = conv_block(ch_in=num_c*8, ch_out=num_c*4)
+#         self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
+        
+#         if self.Attention:
+#             self.Att5 = Attention_block(F_g=num_c*64,F_l=num_c*64,F_int=num_c*64)
+#             self.Att4 = Attention_block(F_g=num_c*16,F_l=num_c*16,F_int=num_c*16)
+#             self.Att3 = Attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
+#             self.Att2 = Attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
+
+#         if self.RCNN:
+#             self.RRCNN1 = RRCNN_block(ch_in=net_inputch,ch_out=num_c,t=t)
+#             self.RRCNN2 = RRCNN_block(ch_in=num_c*4,ch_out=num_c*4,t=t)
+#             self.RRCNN3 = RRCNN_block(ch_in=num_c*16,ch_out=num_c*16,t=t) 
+#             self.RRCNN4 = RRCNN_block(ch_in=num_c*64,ch_out=num_c*64,t=t)      
+#             self.RRCNN5 = RRCNN_block(ch_in=num_c*256,ch_out=num_c*256,t=t)
+
+#             self.Up_RRCNN5 = RRCNN_block(ch_in=num_c*128, ch_out=num_c*64,t=t)
+#             self.Up_RRCNN4 = RRCNN_block(ch_in=num_c*32, ch_out=num_c*16,t=t)
+#             self.Up_RRCNN3 = RRCNN_block(ch_in=num_c*8, ch_out=num_c*4,t=t)
+#             self.Up_RRCNN2 = RRCNN_block(ch_in=num_c*2,ch_out=num_c,t=t)
+
+#         self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
+
+#     def forward(self,x):
+# #         print('x',x.shape)
+
+#         # encoding path
+#         x1 = self.Conv1(x) if self.RCNN==False else self.RRCNN1(x)
+# #         print('x1',x1.shape)
+
+#         x2 = wt(x1)
+# #         x2 = self.Maxpool(x1)
+#         x2 = self.Conv2(x2) if self.RCNN==False else self.RRCNN2(x2)
+# #         print('x2',x2.shape)
+
+#         x3 = wt(x2)
+# #         x3 = self.Maxpool(x2)
+#         x3 = self.Conv3(x3) if self.RCNN==False else self.RRCNN3(x3)
+# #         print('x3',x3.shape)
+
+#         x4 = wt(x3)
+# #         x4 = self.Maxpool(x3)
+#         x4 = self.Conv4(x4) if self.RCNN==False else self.RRCNN4(x4)
+# #         print('x4',x4.shape)
+
+#         x5 = wt(x4)
+# #         x5 = self.Maxpool(x4)
+#         x5 = self.Conv5(x5) if self.RCNN==False else self.RRCNN5(x5)
+# #         print('x5',x5.shape)
+
+#         # decoding + concat path
+#         d5=iwt(x5)
+# #         d5 = self.Up5(d5)
+#         x4 = self.Att5(g=d5,x=x4) if self.Attention == True else x4
+#         d5 = torch.cat((x4,d5),dim=1)
+#         d5 = self.Up_conv5(d5) if self.RCNN == False else self.Up_RRCNN5(d5)
+# #         print('d5',d5.shape)
+
+#         d4=iwt(d5)       
+# #         d4 = self.Up4(d5)
+#         x3 = self.Att4(g=d4,x=x3) if self.Attention == True else x3
+#         d4 = torch.cat((x3,d4),dim=1)
+#         d4 = self.Up_conv4(d4) if self.RCNN == False else self.Up_RRCNN4(d4)
+# #         print('d4',d4.shape)
+
+#         d3=iwt(d4)       
+# #         d3 = self.Up3(d4)
+#         x2 = self.Att3(g=d3,x=x2) if self.Attention == True else x2
+#         d3 = torch.cat((x2,d3),dim=1)
+#         d3 = self.Up_conv3(d3) if self.RCNN == False else self.Up_RRCNN3(d3)
+# #         print('d3',d3.shape)
+
+#         d2=iwt(d3)       
+# #         d2 = self.Up2(d3)
+#         x1 = self.Att2(g=d2,x=x1) if self.Attention == True else x1
+#         d2 = torch.cat((x1,d2),dim=1)
+#         d2 = self.Up_conv2(d2) if self.RCNN == False else self.Up_RRCNN2(d2)
+# #         print('d2',d2.shape)
+
+#         d1 = self.Conv_1x1(d2)
+# #         print('d1',d1.shape)
+
+#         return d1
+
+
 class waveletunet_base(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2, num_c=8, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=2, num_c=64, Attention=False, RCNN=False, t=2):
         super(waveletunet_base,self).__init__()
         self.Attention = Attention
         self.RCNN = RCNN
         
         self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
-        self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*4)
-        self.Conv3 = conv_block(ch_in=num_c*16,ch_out=num_c*16)
-        self.Conv4 = conv_block(ch_in=num_c*64,ch_out=num_c*64)
-        self.Conv5 = conv_block(ch_in=num_c*256,ch_out=num_c*256)
+        self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*2)
+        self.Conv3 = conv_block(ch_in=num_c*8,ch_out=num_c*4)
+        self.Conv4 = conv_block(ch_in=num_c*16,ch_out=num_c*8)
+        self.Conv5 = conv_block(ch_in=num_c*32,ch_out=num_c*32)
 
-        self.Up_conv5 = conv_block(ch_in=num_c*128, ch_out=num_c*64)
-        self.Up_conv4 = conv_block(ch_in=num_c*32, ch_out=num_c*16)
-        self.Up_conv3 = conv_block(ch_in=num_c*8, ch_out=num_c*4)
+        self.Up_conv5 = conv_block(ch_in=num_c*16, ch_out=num_c*16)
+        self.Up_conv4 = conv_block(ch_in=num_c*8, ch_out=num_c*8)
+        self.Up_conv3 = conv_block(ch_in=num_c*4, ch_out=num_c*4)
         self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
         
         if self.Attention:
-            self.Att5 = Attention_block(F_g=num_c*64,F_l=num_c*64,F_int=num_c*64)
-            self.Att4 = Attention_block(F_g=num_c*16,F_l=num_c*16,F_int=num_c*16)
-            self.Att3 = Attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
+            self.Att5 = Attention_block(F_g=num_c*8,F_l=num_c*8,F_int=num_c*8)
+            self.Att4 = Attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
+            self.Att3 = Attention_block(F_g=num_c*2,F_l=num_c*2,F_int=num_c*2)
             self.Att2 = Attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
 
         if self.RCNN:
             self.RRCNN1 = RRCNN_block(ch_in=net_inputch,ch_out=num_c,t=t)
-            self.RRCNN2 = RRCNN_block(ch_in=num_c*4,ch_out=num_c*4,t=t)
-            self.RRCNN3 = RRCNN_block(ch_in=num_c*16,ch_out=num_c*16,t=t) 
-            self.RRCNN4 = RRCNN_block(ch_in=num_c*64,ch_out=num_c*64,t=t)      
-            self.RRCNN5 = RRCNN_block(ch_in=num_c*256,ch_out=num_c*256,t=t)
+            self.RRCNN2 = RRCNN_block(ch_in=num_c*4,ch_out=num_c*2,t=t)
+            self.RRCNN3 = RRCNN_block(ch_in=num_c*8,ch_out=num_c*4,t=t) 
+            self.RRCNN4 = RRCNN_block(ch_in=num_c*16,ch_out=num_c*8,t=t)      
+            self.RRCNN5 = RRCNN_block(ch_in=num_c*32,ch_out=num_c*32,t=t)
 
-            self.Up_RRCNN5 = RRCNN_block(ch_in=num_c*128, ch_out=num_c*64,t=t)
-            self.Up_RRCNN4 = RRCNN_block(ch_in=num_c*32, ch_out=num_c*16,t=t)
-            self.Up_RRCNN3 = RRCNN_block(ch_in=num_c*8, ch_out=num_c*4,t=t)
+            self.Up_RRCNN5 = RRCNN_block(ch_in=num_c*16, ch_out=num_c*16,t=t)
+            self.Up_RRCNN4 = RRCNN_block(ch_in=num_c*8, ch_out=num_c*8,t=t)
+            self.Up_RRCNN3 = RRCNN_block(ch_in=num_c*4, ch_out=num_c*4,t=t)
             self.Up_RRCNN2 = RRCNN_block(ch_in=num_c*2,ch_out=num_c,t=t)
 
         self.Conv_1x1 = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
@@ -474,8 +573,9 @@ class waveletunet_base(nn.Module):
 
         return d1
 
+
 class waveletunet_att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=8, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=64, Attention=False, RCNN=False, t=2):
         super(waveletunet_att,self).__init__()
         
         self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=False, t=2)
@@ -484,7 +584,7 @@ class waveletunet_att(nn.Module):
         return yhat
 
 class waveletunet_r2(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=3,num_c=8, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=64, Attention=False, RCNN=False, t=2):
         super(waveletunet_r2,self).__init__()
         
         self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=False, RCNN=True, t=2)
@@ -493,7 +593,7 @@ class waveletunet_r2(nn.Module):
         return yhat
 
 class waveletunet_r2att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=3,num_c=8, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=64, Attention=False, RCNN=False, t=2):
         super(waveletunet_r2att,self).__init__()
         
         self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=True, t=2)
