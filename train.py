@@ -241,7 +241,7 @@ def main(args: Namespace):
     # ------------------------
     model = SegModel(**vars(args))
     if args.net_ckpt is not None:
-        ckpt = natsorted(glob.glob(args.net_ckpt+'**/*.ckpt'))
+        ckpt = natsorted(glob.glob(args.net_ckpt+'/**/*.ckpt'))
         model = SegModel.load_from_checkpoint(checkpoint_path = ckpt[-1],**vars(args))
         print(ckpt[-1],'is loaded')
     assert args.project != None, "You should set wandb-logger project name by option --project [PROJECT_NAME]"

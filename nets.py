@@ -476,16 +476,22 @@ def iwt(vres):
 
 
 class waveletunet_base(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2, num_c=64, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=2, num_c=32, Attention=False, RCNN=False, t=2):
         super(waveletunet_base,self).__init__()
         self.Attention = Attention
         self.RCNN = RCNN
         
+#         self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
+#         self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*2)
+#         self.Conv3 = conv_block(ch_in=num_c*8,ch_out=num_c*4)
+#         self.Conv4 = conv_block(ch_in=num_c*16,ch_out=num_c*8)
+#         self.Conv5 = conv_block(ch_in=num_c*32,ch_out=num_c*32)
+
         self.Conv1 = conv_block(ch_in=net_inputch,ch_out=num_c)
-        self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*2)
-        self.Conv3 = conv_block(ch_in=num_c*8,ch_out=num_c*4)
-        self.Conv4 = conv_block(ch_in=num_c*16,ch_out=num_c*8)
-        self.Conv5 = conv_block(ch_in=num_c*32,ch_out=num_c*32)
+        self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*1)
+        self.Conv3 = conv_block(ch_in=num_c*4,ch_out=num_c*)
+        self.Conv4 = conv_block(ch_in=num_c*4,ch_out=num_c*1)
+        self.Conv5 = conv_block(ch_in=num_c*4,ch_out=num_c*1)
 
         self.Up_conv5 = conv_block(ch_in=num_c*16, ch_out=num_c*16)
         self.Up_conv4 = conv_block(ch_in=num_c*8, ch_out=num_c*8)
@@ -575,7 +581,7 @@ class waveletunet_base(nn.Module):
 
 
 class waveletunet_att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=64, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, Attention=False, RCNN=False, t=2):
         super(waveletunet_att,self).__init__()
         
         self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=False, t=2)
@@ -584,7 +590,7 @@ class waveletunet_att(nn.Module):
         return yhat
 
 class waveletunet_r2(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=3,num_c=64, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=32, Attention=False, RCNN=False, t=2):
         super(waveletunet_r2,self).__init__()
         
         self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=False, RCNN=True, t=2)
@@ -593,7 +599,7 @@ class waveletunet_r2(nn.Module):
         return yhat
 
 class waveletunet_r2att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=3,num_c=64, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=32, Attention=False, RCNN=False, t=2):
         super(waveletunet_r2att,self).__init__()
         
         self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=True, t=2)

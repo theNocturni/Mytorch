@@ -1,9 +1,8 @@
 # Mytorch for segmentation
 ## Key features
-- End-to-end segmentation model with tricks based on pytorch-lighting 
-- Easy to train 2D segmentation, (Futurework 1D, 3D)
-- Easy to tune hyper-parameters (Support sweeps using wandb)
-- Provides networks
+- pytorch-lighting based segmentation model with tricks
+- easy to train segmentation
+- support sweeps using wandb
 
 # HOW TO USE 
 ## Training
