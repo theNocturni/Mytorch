@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings(action='ignore')
 
+import argparse
 from argparse import ArgumentParser, Namespace
 
 import os, random, glob
@@ -43,6 +44,8 @@ class SegModel(pl.LightningModule):
                         net_inputch = 1,
                         net_outputch = 1,
                         net_norm = 'batch',
+                        net_nnblock = False,
+                        net_supervision = False,
                         net_ckpt = None,
                         precision = 32,
                         **kwargs):
@@ -55,10 +58,12 @@ class SegModel(pl.LightningModule):
         self.data_cropsize = data_cropsize
         self.data_resize = data_resize
         self.data_patchsize = data_patchsize
+        self.net_ckpt = net_ckpt
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch
         self.net_norm = net_norm
-        self.net_ckpt = net_ckpt
+        self.net_nnblock = net_nnblock
+        self.net_supervision = net_supervision
         self.precision = precision
         self.project = project
         self.lr =lr
@@ -69,7 +74,7 @@ class SegModel(pl.LightningModule):
 
         # net
         fn_call = getattr(nets, net)
-        self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch)
+        self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch, nnblock=self.net_nnblock, supervision=self.net_supervision)
         
         if self.net_norm == 'instance':
             self.net = nets.bn2instance(self.net)
@@ -131,24 +136,31 @@ class SegModel(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = ArgumentParser(parents=[parent_parser])
-        def none_or_str(value):
-            if value == 'None':
+        def str2bool(v):
+            if v == 'None':
                 return None
-            return value
+            elif v.lower() in ('yes', 'true', 't', 'y', '1'):
+                return True
+            elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+                return False
+            else:
+                return v
         parser.add_argument("--project", type=str, help="wandb project name, this will set your wandb project")
         parser.add_argument("--data_dir", type=str, help="path where dataset is stored, subfolders name should be x_train, y_train")
         parser.add_argument("--data_module", type=str,default='dataset', help="Data Module, see datasets.py")
-        parser.add_argument("--data_padsize", type=none_or_str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
-        parser.add_argument("--data_cropsize", type=none_or_str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
-        parser.add_argument("--data_resize", type=none_or_str, default=None, help="input like this (height_width) : pad - crop - resize - patch")
-        parser.add_argument("--data_patchsize", type=none_or_str, default=None, help="input like this (height_width) : pad - crop - resize - patch: recommand (A * 2^n)")
+        parser.add_argument("--data_padsize", type=str2bool, default=None, help="input like this (height_width) : pad - crop - resize - patch")
+        parser.add_argument("--data_cropsize", type=str2bool, default=None, help="input like this (height_width) : pad - crop - resize - patch")
+        parser.add_argument("--data_resize", type=str2bool, default=None, help="input like this (height_width) : pad - crop - resize - patch")
+        parser.add_argument("--data_patchsize", type=str2bool, default=None, help="input like this (height_width) : pad - crop - resize - patch: recommand (A * 2^n)")
         parser.add_argument("--batch_size", type=int, default=None, help="batch_size, if None, searching will be done")
-        parser.add_argument("--lossfn", type=str, default='CE', help="class of the loss function[CELoss, DiceCELoss, MSE, ...], see losses.py")
-        parser.add_argument("--net", type=str, default='unet_eb5_batch', help="Class of the Networks, see nets.py")
+        parser.add_argument("--lossfn", type=str2bool, default='CE', help="class of the loss function[CELoss, DiceCELoss, MSE, ...], see losses.py")
+        parser.add_argument("--net", type=str2bool, default='unet_eb5_batch', help="Class of the Networks, see nets.py")
         parser.add_argument("--net_inputch", type=int, default=1, help='dimensions of network input channel')
         parser.add_argument("--net_outputch", type=int, default=2, help='dimensions of network output channel')          
-        parser.add_argument("--net_norm", type=str, default='batch', help='net normalization, [batch,instance,group]')          
-        parser.add_argument("--net_ckpt", type=str, default=None, help='path to checkpoint, ex) logs/[PROJECT]/[ID]')          
+        parser.add_argument("--net_norm", type=str2bool, default='batch', help='net normalization, [batch,instance,group]')          
+        parser.add_argument("--net_ckpt", type=str2bool, default=None, help='path to checkpoint, ex) logs/[PROJECT]/[ID]')          
+        parser.add_argument("--net_nnblock", type=str2bool, default=False, help='nnblock')              
+        parser.add_argument("--net_supervision", type=str2bool, default=False, help='supervision')        
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
         parser.add_argument("--lr", type=float, default=1e-3, help="Set learning rate of Adam optimzer.")        
         parser.add_argument("--experiment_name", type=str, default=None, help='Postfix name of experiment')         

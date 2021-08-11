@@ -108,7 +108,7 @@ class BoundaryLoss(nn.Module):
     """
 #     def __init__(self, theta0=3, theta=3, alpha = 0.7, gamma = 0.75): #DRIVE
 #     def __init__(self, theta0=3, theta=15, alpha = 0.7, gamma = 0.75):  #AMC 이거로도 잘되었음
-    def __init__(self, theta0=3, theta=9, alpha = 0.7, gamma = 0.75):
+    def __init__(self, theta0=3, theta=7, alpha = 0.7, gamma = 0.75):
         super().__init__()
 
         self.alpha = alpha
@@ -130,7 +130,7 @@ class BoundaryLoss(nn.Module):
         n, c, _, _ = pred.shape
 
         # softmax so that predicted map can be distributed in [0, 1]
-#         pred = torch.softmax(pred, dim=1)
+        pred = torch.softmax(pred, dim=1)
 
         # one-hot vector of ground truth
         one_hot_gt = one_hot(gt, c)
@@ -151,18 +151,12 @@ class BoundaryLoss(nn.Module):
 #         print('boundary_loss')
 #         print(torch.unique(gt_b),torch.unique(gt_b_ext))
 #         plt.figure(figsize=(24,8))
-#         plt.subplot(161)
-#         plt.imshow(gt[idx,0].cpu().detach().numpy())
-#         plt.subplot(162)
-#         plt.imshow(gt_b[idx,0].cpu().detach().numpy())
-#         plt.subplot(163)
-#         plt.imshow(gt_b_ext[0,idx].cpu().detach().numpy())
-#         plt.subplot(164)
-#         plt.imshow(pred[idx,1].cpu().detach().numpy())
-#         plt.subplot(165)
-#         plt.imshow(pred_b[idx,0].cpu().detach().numpy())
-#         plt.subplot(166)
-#         plt.imshow(pred_b_ext[idx,0].cpu().detach().numpy())
+#         plt.subplot(231);plt.title('gt');plt.imshow(gt[idx,0].cpu().detach().numpy())
+#         plt.subplot(232);plt.title('gt_boundary');plt.imshow(gt_b[idx,0].cpu().detach().numpy())
+#         plt.subplot(233);plt.title('gt_boundary_ext');plt.imshow(gt_b_ext[0,idx].cpu().detach().numpy())
+#         plt.subplot(234);plt.title('pred');plt.imshow(pred[idx,1].cpu().detach().numpy())
+#         plt.subplot(235);plt.title('pred_boundary');plt.imshow(pred_b[idx,0].cpu().detach().numpy())
+#         plt.subplot(236);plt.title('pred_boundary_ext');plt.imshow(pred_b_ext[idx,0].cpu().detach().numpy())
 #         plt.show()
         
         # reshape
@@ -174,8 +168,8 @@ class BoundaryLoss(nn.Module):
         smooth = 1e-7
 #         original impliment
         # Precision, Recall
-        P = torch.sum(pred_b * gt_b_ext, dim=2) / (torch.sum(pred_b, dim=2) + 1e-7)
-        R = torch.sum(pred_b_ext * gt_b, dim=2) / (torch.sum(gt_b, dim=2) + 1e-7)
+        P = torch.sum(pred_b * gt_b_ext, dim=2) / (torch.sum(pred_b, dim=2) + smooth)
+        R = torch.sum(pred_b_ext * gt_b, dim=2) / (torch.sum(gt_b, dim=2) + smooth)
         
         # Boundary F1 Score
         smooth = 1e-7
@@ -328,8 +322,11 @@ def norm_intersection(center_line, vessel):
     x - suppose to be centerline of vessel (pred or gt) and y - is vessel (pred or gt)
     '''
     smooth = 1.
-    clf = center_line.view(*center_line.shape[:2], -1)
-    vf = vessel.view(*vessel.shape[:2], -1)
+    # original impliment
+#     clf = center_line.view(*center_line.shape[:2], -1)
+#     vf = vessel.view(*vessel.shape[:2], -1)
+    clf = center_line.view(center_line.shape[0],center_line.shape[1], -1)
+    vf = vessel.reshape(vessel.shape[0],vessel.shape[1], -1)
     intersection = (clf * vf).sum(-1)
     return (intersection + smooth) / (clf.sum(-1) + smooth)
 
@@ -344,12 +341,32 @@ def soft_cldice_loss(pred, target, target_skeleton=None):
     cl_pred = soft_skeletonize(pred)
     if target_skeleton is None:
         target_skeleton = soft_skeletonize(target)
+        
+#     plt.figure(figsize=(10,10))
+#     plt.subplot(121)
+#     plt.title('pred')
+#     plt.imshow(pred[0,0])
+#     plt.subplot(122)
+#     plt.title('cl_pred')
+#     plt.imshow(cl_pred[0,0])
+#     plt.show()
+    
+#     plt.figure(figsize=(10,10))
+#     plt.subplot(121)
+#     plt.title('target')
+#     plt.imshow(target[0,0])
+#     plt.subplot(122)
+#     plt.title('target_skeleton')
+#     plt.imshow(target_skeleton[0,0])
+#     plt.show()
+#     plt.imshow(torch_closed(target_skeleton,2)[0,0])
+#     plt.show()
+#     print(pred.shape,cl_pred.shape,target.shape,target_skeleton.shape)
     iflat = norm_intersection(cl_pred, target)
     tflat = norm_intersection(target_skeleton, pred)
     intersection = iflat * tflat
-    return -((2. * intersection) /
-              (iflat + tflat))
-    
+    return torch.mean(-((2. * intersection) / (iflat + tflat)))
+
 import cv2 as cv
 import numpy as np
 

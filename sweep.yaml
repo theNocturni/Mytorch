@@ -18,6 +18,7 @@ parameters:
     distribution: categorical
     values:
     - dataset
+    - dataset_adaptivehist
   experiment_name:
     distribution: categorical
     values:
@@ -25,9 +26,10 @@ parameters:
   lossfn:
     distribution: categorical
     values:
-    - BoundaryCELoss
+#     - BoundaryCELoss
+#     - BoundaryFocalLoss
     - FocalLoss
-    - BoundaryFocalLoss
+    - CELoss
   net:
     distribution: categorical
     values:
@@ -48,6 +50,16 @@ parameters:
     distribution: categorical
     values:
     - 3
+  net_nnblock:
+    distribution: categorical
+    values:
+    - True
+    - False
+  net_supervision:
+    distribution: categorical
+    values:
+    - True
+    - False
   data_padsize:
     distribution: categorical
     values:

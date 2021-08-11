@@ -181,21 +181,69 @@ class segresnet(nn.Module):
     def forward(self,x):
         return self.net(x)
     
-# wavelet Unet
+# # wavelet Unet
+# import pywt
+# import torch
+# from torch.autograd import Variable
+
+# w=pywt.Wavelet('db1')
+# dec_hi = torch.Tensor(w.dec_hi[::-1]) 
+# dec_lo = torch.Tensor(w.dec_lo[::-1])
+# rec_hi = torch.Tensor(w.rec_hi)
+# rec_lo = torch.Tensor(w.rec_lo)
+# filters = torch.stack([dec_lo.unsqueeze(0)*dec_lo.unsqueeze(1)/2.0,
+#                        dec_lo.unsqueeze(0)*dec_hi.unsqueeze(1),
+#                        dec_hi.unsqueeze(0)*dec_lo.unsqueeze(1),
+#                        dec_hi.unsqueeze(0)*dec_hi.unsqueeze(1)], dim=0)
+# inv_filters = torch.stack([rec_lo.unsqueeze(0)*rec_lo.unsqueeze(1)*2.0,
+#                            rec_lo.unsqueeze(0)*rec_hi.unsqueeze(1),
+#                            rec_hi.unsqueeze(0)*rec_lo.unsqueeze(1),
+#                            rec_hi.unsqueeze(0)*rec_hi.unsqueeze(1)], dim=0)
+
+# def wt(vimg):
+#     padded = vimg
+#     res = torch.zeros(vimg.shape[0],4*vimg.shape[1],int(vimg.shape[2]/2),int(vimg.shape[3]/2))
+#     res = res.cuda()
+#     for i in range(padded.shape[1]):
+#         res[:,4*i:4*i+4] = torch.nn.functional.conv2d(padded[:,i:i+1], Variable(filters[:,None].cuda(),requires_grad=True),stride=2)
+#         res[:,4*i+1:4*i+4] = (res[:,4*i+1:4*i+4]+1)/2.0
+#     return res
+
+# def iwt(vres):
+#     res = torch.zeros(vres.shape[0],int(vres.shape[1]/4),int(vres.shape[2]*2),int(vres.shape[3]*2))
+#     res = res.cuda()
+#     for i in range(res.shape[1]):
+#         vres[:,4*i+1:4*i+4]=2*vres[:,4*i+1:4*i+4]-1
+#         temp = torch.nn.functional.conv_transpose2d(vres[:,4*i:4*i+4], Variable(inv_filters[:,None].cuda(),requires_grad=True),stride=2)
+#         res[:,i:i+1,:,:] = temp
+#     return res
+
 import pywt
 import torch
 from torch.autograd import Variable
 
 w=pywt.Wavelet('db1')
+# w=pywt.Wavelet('haar')
+# w=pywt.Wavelet('rbio1.1')
 dec_hi = torch.Tensor(w.dec_hi[::-1]) 
 dec_lo = torch.Tensor(w.dec_lo[::-1])
 rec_hi = torch.Tensor(w.rec_hi)
 rec_lo = torch.Tensor(w.rec_lo)
+
 filters = torch.stack([dec_lo.unsqueeze(0)*dec_lo.unsqueeze(1)/2.0,
                        dec_lo.unsqueeze(0)*dec_hi.unsqueeze(1),
                        dec_hi.unsqueeze(0)*dec_lo.unsqueeze(1),
                        dec_hi.unsqueeze(0)*dec_hi.unsqueeze(1)], dim=0)
 inv_filters = torch.stack([rec_lo.unsqueeze(0)*rec_lo.unsqueeze(1)*2.0,
+                           rec_lo.unsqueeze(0)*rec_hi.unsqueeze(1),
+                           rec_hi.unsqueeze(0)*rec_lo.unsqueeze(1),
+                           rec_hi.unsqueeze(0)*rec_hi.unsqueeze(1)], dim=0)
+
+filters = torch.stack([dec_lo.unsqueeze(0)*dec_lo.unsqueeze(1),
+                       dec_lo.unsqueeze(0)*dec_hi.unsqueeze(1),
+                       dec_hi.unsqueeze(0)*dec_lo.unsqueeze(1),
+                       dec_hi.unsqueeze(0)*dec_hi.unsqueeze(1)], dim=0)
+inv_filters = torch.stack([rec_lo.unsqueeze(0)*rec_lo.unsqueeze(1),
                            rec_lo.unsqueeze(0)*rec_hi.unsqueeze(1),
                            rec_hi.unsqueeze(0)*rec_lo.unsqueeze(1),
                            rec_hi.unsqueeze(0)*rec_hi.unsqueeze(1)], dim=0)
@@ -206,14 +254,14 @@ def wt(vimg):
     res = res.cuda()
     for i in range(padded.shape[1]):
         res[:,4*i:4*i+4] = torch.nn.functional.conv2d(padded[:,i:i+1], Variable(filters[:,None].cuda(),requires_grad=True),stride=2)
-        res[:,4*i+1:4*i+4] = (res[:,4*i+1:4*i+4]+1)/2.0
+#         res[:,4*i+1:4*i+4] = (res[:,4*i+1:4*i+4]+1)/2.0
     return res
 
 def iwt(vres):
     res = torch.zeros(vres.shape[0],int(vres.shape[1]/4),int(vres.shape[2]*2),int(vres.shape[3]*2))
     res = res.cuda()
     for i in range(res.shape[1]):
-        vres[:,4*i+1:4*i+4]=2*vres[:,4*i+1:4*i+4]-1
+#         vres[:,4*i+1:4*i+4]=2*vres[:,4*i+1:4*i+4]-1
         temp = torch.nn.functional.conv_transpose2d(vres[:,4*i:4*i+4], Variable(inv_filters[:,None].cuda(),requires_grad=True),stride=2)
         res[:,i:i+1,:,:] = temp
     return res
@@ -318,7 +366,7 @@ def iwt(vres):
 
 
 class waveletunet_base(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2, num_c=32, Attention=False, RCNN=False, t=2, nnblock = False, supervision=False):
+    def __init__(self,net_inputch=3, net_outputch=2, num_c=32, Attention=False, RCNN=False, t=2, nnblock = False, supervision=False):
         super(waveletunet_base,self).__init__()
         self.Attention = Attention
         self.RCNN = RCNN
@@ -368,30 +416,21 @@ class waveletunet_base(nn.Module):
             self.nnblock32 = NONLocalBlock2D(num_c*32)
             
         if supervision==True:
-
-    #         self.Conv_final = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
             self.Conv_final = nn.Sequential(
-                    nn.Conv2d(int(num_c+num_c+num_c/2+num_c/4), num_c*2, kernel_size=3,stride=1,padding=1,bias=True),
-                    nn.BatchNorm2d(num_c*2),
+                    nn.Conv2d(int(num_c+num_c+num_c/2), num_c, kernel_size=3,stride=1,padding=1,bias=True),
+                    nn.BatchNorm2d(num_c),
                     nn.ReLU(),
-                    nn.Conv2d(num_c*2, num_c*2, kernel_size=3,stride=1,padding=1,bias=True),
-                    nn.BatchNorm2d(num_c*2),
-                    nn.ReLU(),
-                    nn.Conv2d(num_c*2, num_c, kernel_size=3,stride=1,padding=1,bias=True),
+                    nn.Conv2d(num_c, num_c, kernel_size=3,stride=1,padding=1,bias=True),
                     nn.BatchNorm2d(num_c),
                     nn.ReLU(),
                     nn.Conv2d(num_c, net_outputch, kernel_size=1,stride=1,padding=0,bias=True),
             )
         else:
-    #         self.Conv_final = nn.Conv2d(num_c,net_outputch,kernel_size=1,stride=1,padding=0)
             self.Conv_final = nn.Sequential(
-                    nn.Conv2d(num_c, num_c*2, kernel_size=3,stride=1,padding=1,bias=True),
-                    nn.BatchNorm2d(num_c*2),
+                    nn.Conv2d(num_c, num_c, kernel_size=3,stride=1,padding=1,bias=True),
+                    nn.BatchNorm2d(num_c),
                     nn.ReLU(),
-                    nn.Conv2d(num_c*2, num_c*2, kernel_size=3,stride=1,padding=1,bias=True),
-                    nn.BatchNorm2d(num_c*2),
-                    nn.ReLU(),
-                    nn.Conv2d(num_c*2, num_c, kernel_size=3,stride=1,padding=1,bias=True),
+                    nn.Conv2d(num_c, num_c, kernel_size=3,stride=1,padding=1,bias=True),
                     nn.BatchNorm2d(num_c),
                     nn.ReLU(),
                     nn.Conv2d(num_c, net_outputch, kernel_size=1,stride=1,padding=0,bias=True),
@@ -403,6 +442,8 @@ class waveletunet_base(nn.Module):
 
         # encoding path
         x1 = self.Conv1(x) if self.RCNN==False else self.RRCNN1(x)
+        if self.nnblock:
+            x1 = self.nnblock1(x1)
 #         print('x1',x1.shape)
 
         x2 = wt(x1)
@@ -474,14 +515,14 @@ class waveletunet_base(nn.Module):
             s2 = d2
             s3 = iwt(d3)
             s4 = iwt(iwt(d4))
-            s5 = iwt(iwt(iwt(d5)))
+#             s5 = iwt(iwt(iwt(d5)))
             
-            d2 = torch.cat((s2,s3,s4,s5),dim=1)
-            print(s2.shape,s3.shape,s4.shape,s5.shape)
+#             d2 = torch.cat((s2,s3,s4,s5),dim=1)
+            d2 = torch.cat((s2,s3,s4),dim=1)
             d1 = self.Conv_final(d2)
             
         else:
-            d1 = self.Conv_final(d2)
+            d1 = self.Conv_final(d2)            
             
 #         print('d1',d1.shape)
 
@@ -489,28 +530,28 @@ class waveletunet_base(nn.Module):
 
 
 class waveletunet_att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, Attention=False, RCNN=False, nnblock=False, supervision=False, t=2):
         super(waveletunet_att,self).__init__()
-        
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=False, t=2)
+
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=False, nnblock=nnblock, supervision=supervision, t=2)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat
 
 class waveletunet_r2(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=3,num_c=32, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=32, Attention=False, RCNN=False, nnblock=False, supervision=False, t=2):
         super(waveletunet_r2,self).__init__()
         
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=False, RCNN=True, t=2)
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=False, RCNN=True, nnblock=nnblock, supervision=supervision, t=2)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat
 
 class waveletunet_r2att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=3,num_c=32, Attention=False, RCNN=False, t=2):
+    def __init__(self,net_inputch=3,net_outputch=3,num_c=32, Attention=False, RCNN=False, nnblock=False, supervision=False, t=2):
         super(waveletunet_r2att,self).__init__()
         
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=True, t=2)
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=True, nnblock=nnblock, supervision=supervision, t=2)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat
@@ -1211,19 +1252,19 @@ class _NonLocalBlockND(nn.Module):
         if dimension == 3:
             conv_nd = nn.Conv3d
             max_pool_layer = nn.MaxPool3d(kernel_size=(1, 2, 2))
-#             bn = nn.BatchNorm3d
-            bn = nn.GroupNorm
+            bn = nn.BatchNorm3d
+#             bn = nn.GroupNorm
         elif dimension == 2:
-#             conv_nd = nn.Conv2d
-            conv_nd = Conv2d
+            conv_nd = nn.Conv2d
+#             conv_nd = Conv2d
             max_pool_layer = nn.MaxPool2d(kernel_size=(2, 2))
-#             bn = nn.BatchNorm2d
-            bn = nn.GroupNorm
+            bn = nn.BatchNorm2d
+#             bn = nn.GroupNorm
         else:
             conv_nd = nn.Conv1d
             max_pool_layer = nn.MaxPool1d(kernel_size=(2))
-#             bn = nn.BatchNorm1d
-            bn = nn.GroupNorm
+            bn = nn.BatchNorm1d
+#             bn = nn.GroupNorm
 
         self.g = conv_nd(in_channels=self.in_channels, out_channels=self.inter_channels,
                          kernel_size=1, stride=1, padding=0)
@@ -1232,8 +1273,8 @@ class _NonLocalBlockND(nn.Module):
             self.W = nn.Sequential(
                 conv_nd(in_channels=self.inter_channels, out_channels=self.in_channels,
                         kernel_size=1, stride=1, padding=0),
-#                 bn(self.in_channels)
-                bn(int(self.in_channels/16),self.in_channels)
+                bn(self.in_channels)
+#                 bn(int(self.in_channels/16),self.in_channels)
             )
             nn.init.constant_(self.W[1].weight, 0)
             nn.init.constant_(self.W[1].bias, 0)
