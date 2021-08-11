@@ -6,10 +6,26 @@ import monai
 import kornia
 from monai.networks.utils import one_hot
 
+# class twLoss(nn.Module):
+#     def __init__(self):
+#         super(twLoss, self).__init__()
+#         self.kernel = torch.ones(1, 1)
+#         self.erosion = kornia.morphology.erosion
+        
+#     def forward(self,yhat,y):
+
+#         for idx in range():
+            
+#         x = -max_pool (-x)
+#                 # boundary map
+#                 gt_b = F.max_pool2d(1 - one_hot_gt, kernel_size=self.theta0, stride=1, padding=(self.theta0 - 1) // 2)
+#         loss = self.ce(yhat,y)
+#         return loss 
+
 class FocalLoss(nn.Module):
     def __init__(self):
         super(FocalLoss, self).__init__()
-        self.ce = monai.losses.FocalLoss(to_onehot_y = True, gamma = 2.0)
+        self.ce = monai.losses.FocalLoss(to_onehot_y = True, gamma = 4.0)
         
     def forward(self,yhat,y):
         loss = self.ce(yhat,y)
@@ -28,7 +44,7 @@ class CELoss(nn.Module):
 class DiceCELoss(nn.Module):
     def __init__(self):        
         super(DiceCELoss, self).__init__()
-        self.dice = monai.losses.GeneralizedDiceLoss(to_onehot_y=True,softmax=False)
+        self.dice = monai.losses.GeneralizedDiceLoss(to_onehot_y=True, softmax=False)
         self.ce = CrossEntropyLoss()        
         
     def forward(self,yhat,y):
@@ -85,7 +101,6 @@ class BoundaryFocalLoss(nn.Module):
         boundary = self.boundary(yhat,y)        
         return ce+boundary
 
-
 class BoundaryLoss(nn.Module):
     """Boundary Loss proposed in:
     Alexey Bokhovkin et al., Boundary Loss for Remote Sensing Imagery Semantic Segmentation
@@ -93,7 +108,7 @@ class BoundaryLoss(nn.Module):
     """
 #     def __init__(self, theta0=3, theta=3, alpha = 0.7, gamma = 0.75): #DRIVE
 #     def __init__(self, theta0=3, theta=15, alpha = 0.7, gamma = 0.75):  #AMC 이거로도 잘되었음
-    def __init__(self, theta0=3, theta=5, alpha = 0.7, gamma = 0.75):
+    def __init__(self, theta0=3, theta=9, alpha = 0.7, gamma = 0.75):
         super().__init__()
 
         self.alpha = alpha
@@ -189,12 +204,117 @@ import numpy as np
 import cv2
 import torch
 
-def soft_skeletonize(x, thresh_width=20):
+# def soft_skeletonize(x, thresh_width=20):
+#     '''
+#     Differenciable aproximation of morphological skelitonization operaton
+#     thresh_width - maximal expected width of vessel
+#     '''
+
+#     for i in range(thresh_width):
+#         min_pool_x = torch.nn.functional.max_pool2d(x*-1, (3, 3), 1, 1)*-1
+#         contour = torch.nn.functional.relu(torch.nn.functional.max_pool2d(min_pool_x, (3, 3), 1, 1) - min_pool_x)
+#         x = torch.nn.functional.relu(x - contour)
+#     return x
+
+# def norm_intersection(center_line, vessel):
+#     '''
+#     inputs shape  (batch, channel, height, width)
+#     intersection formalized by first ares
+#     x - suppose to be centerline of vessel (pred or gt) and y - is vessel (pred or gt)
+#     '''
+#     smooth = 1.
+# #     print(center_line.shape,vessel.shape)
+# #     clf = center_line.view(*center_line.shape[:2], -1)
+# #     vf = vessel.view(*vessel.shape[:2], -1)
+# #     print(clf.shape,vf.shape)
+#     clf = center_line.flatten()
+#     vf = vessel.flatten()
+#     intersection = (clf * vf).sum(-1)
+#     print(intersection.shape)
+#     return (intersection + smooth) / (clf.sum(-1) + smooth)
+
+# def soft_cldice_loss(pred, target, target_skeleton=None):
+#     '''
+#     inputs shape  (batch, channel, height, width).
+#     calculate clDice loss
+#     Because pred and target at moment of loss calculation will be a torch tensors
+#     it is preferable to calculate target_skeleton on the step of batch forming,
+#     when it will be in numpy array format by means of opencv
+#     '''
+#     if len(pred.shape)==4 and pred.shape[1]>1:
+#         pred = torch.argmax(pred,1).unsqueeze(1).float()
+#     elif len(pred.shape)==4 and pred.shape[1]==1:
+#         pred = pred.float()
+            
+#     cl_pred = soft_skeletonize(pred)
+#     if target_skeleton is None:
+#         target_skeleton = soft_skeletonize(target)
+        
+# #     print('soft_cldice_loss')
+# #     plt.figure(figsize=(24,24))
+# #     plt.subplot(141)
+# #     plt.imshow(target[0,0].cpu().detach())
+# #     plt.subplot(142)
+# #     plt.imshow(target_skeleton[0,0].cpu().detach())
+# #     plt.subplot(143)
+# #     plt.imshow(pred[0,0].cpu().detach())
+# #     plt.subplot(144)
+# #     plt.imshow(cl_pred[0,0].cpu().detach())
+# #     plt.show()    
+    
+#     iflat = norm_intersection(cl_pred, target)
+#     tflat = norm_intersection(target_skeleton, pred)
+#     intersection = iflat * tflat
+#     loss = -((2. * intersection) / (iflat + tflat))
+    
+#     return loss
+
+class clDiceLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, pred, gt):
+        return soft_cldice_loss(pred,gt)#.squeeze()
+
+import numpy as np
+import cv2
+import torch
+
+def opencv_skelitonize(img):
+    skel = np.zeros(img.shape, np.uint8)
+    img = img.astype(np.uint8)
+    size = np.size(img)
+    element = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
+    done = False
+    while( not done):
+        eroded = cv2.erode(img,element)
+        temp = cv2.dilate(eroded,element)
+        temp = cv2.subtract(img,temp)
+        skel = cv2.bitwise_or(skel,temp)
+        img = eroded.copy()
+        zeros = size - cv2.countNonZero(img)
+        if zeros==size:
+            done = True
+    return skel
+
+def dice_loss(pred, target):
+    '''
+    inputs shape  (batch, channel, height, width).
+    calculate dice loss per batch and channel of sample.
+    E.g. if batch shape is [64, 1, 128, 128] -> [64, 1]
+    '''
+    smooth = 1.
+    iflat = pred.view(*pred.shape[:2], -1) #batch, channel, -1
+    tflat = target.view(*target.shape[:2], -1)
+    intersection = (iflat * tflat).sum(-1)
+    return -((2. * intersection + smooth) /
+              (iflat.sum(-1) + tflat.sum(-1) + smooth))
+
+def soft_skeletonize(x, thresh_width=10):
     '''
     Differenciable aproximation of morphological skelitonization operaton
     thresh_width - maximal expected width of vessel
     '''
-
     for i in range(thresh_width):
         min_pool_x = torch.nn.functional.max_pool2d(x*-1, (3, 3), 1, 1)*-1
         contour = torch.nn.functional.relu(torch.nn.functional.max_pool2d(min_pool_x, (3, 3), 1, 1) - min_pool_x)
@@ -208,10 +328,8 @@ def norm_intersection(center_line, vessel):
     x - suppose to be centerline of vessel (pred or gt) and y - is vessel (pred or gt)
     '''
     smooth = 1.
-#     clf = center_line.view(*center_line.shape[:2], -1)
-#     vf = vessel.view(*vessel.shape[:2], -1)
-    clf = center_line.flatten()
-    vf = vessel.flatten()
+    clf = center_line.view(*center_line.shape[:2], -1)
+    vf = vessel.view(*vessel.shape[:2], -1)
     intersection = (clf * vf).sum(-1)
     return (intersection + smooth) / (clf.sum(-1) + smooth)
 
@@ -223,40 +341,14 @@ def soft_cldice_loss(pred, target, target_skeleton=None):
     it is preferable to calculate target_skeleton on the step of batch forming,
     when it will be in numpy array format by means of opencv
     '''
-    if len(pred.shape)==4 and pred.shape[1]>1:
-        pred = torch.argmax(pred,1).unsqueeze(1).float()
-    elif len(pred.shape)==4 and pred.shape[1]==1:
-        pred = pred.float()
-        
     cl_pred = soft_skeletonize(pred)
     if target_skeleton is None:
         target_skeleton = soft_skeletonize(target)
-        
-#     print('soft_cldice_loss')
-#     plt.figure(figsize=(24,24))
-#     plt.subplot(141)
-#     plt.imshow(target[0,0].cpu().detach())
-#     plt.subplot(142)
-#     plt.imshow(target_skeleton[0,0].cpu().detach())
-#     plt.subplot(143)
-#     plt.imshow(pred[0,0].cpu().detach())
-#     plt.subplot(144)
-#     plt.imshow(cl_pred[0,0].cpu().detach())
-#     plt.show()    
-    
     iflat = norm_intersection(cl_pred, target)
     tflat = norm_intersection(target_skeleton, pred)
     intersection = iflat * tflat
-    loss = 1-((2. * intersection) / (iflat + tflat))
-    return loss
-
-class clDiceLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, pred, gt):
-        return soft_cldice_loss(pred,gt).squeeze()
-
+    return -((2. * intersection) /
+              (iflat + tflat))
     
 import cv2 as cv
 import numpy as np

@@ -2,8 +2,8 @@ program: train.py
 project: Retina
 method: bayes
 metric:
-  goal: minimize
-  name: loss_val
+  goal: maximize
+  name: metric_val
 parameters:
   project:
     distribution: categorical
@@ -13,6 +13,7 @@ parameters:
     distribution: categorical
     values:
     - /workspace/Retina/dataset/DRIVE
+    - /workspace/Retina/dataset/AMC/refined
   data_module:
     distribution: categorical
     values:
@@ -25,14 +26,11 @@ parameters:
     distribution: categorical
     values:
     - BoundaryCELoss
-    - CELoss
     - FocalLoss
     - BoundaryFocalLoss
   net:
     distribution: categorical
     values:
-    - unet_eb5
-    - manet_eb5
     - waveletunet_r2att
     - waveletunet_r2
     - waveletunet_att    
@@ -67,13 +65,15 @@ parameters:
     values:
     - 160
     - 128
-    - 96
   precision:
     distribution: categorical
     values:
-    - 32
     - 16
   batch_size:
     distribution: categorical
     values:
     - 24
+  lr:
+    distribution: categorical
+    values:
+    - 1e-3

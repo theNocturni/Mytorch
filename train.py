@@ -38,7 +38,7 @@ class SegModel(pl.LightningModule):
                         experiment_name = None,
                         gpus = -1,
                         lossfn = 'CELoss',
-                        lr = None,
+                        lr = 1e-3,
                         net = 'unet_eb5_batch',
                         net_inputch = 1,
                         net_outputch = 1,
@@ -119,7 +119,7 @@ class SegModel(pl.LightningModule):
         """
         if self.lr != 0:
             optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.9, patience=100, min_lr=1e-7)    
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.8, patience=20, min_lr=1e-7)    
         else:
             optimizer = torch.optim.SGD(self.net.parameters(), lr=1e-7, weight_decay = 0.0005, momentum=0.9)
             scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.9)
@@ -150,7 +150,7 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--net_norm", type=str, default='batch', help='net normalization, [batch,instance,group]')          
         parser.add_argument("--net_ckpt", type=str, default=None, help='path to checkpoint, ex) logs/[PROJECT]/[ID]')          
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
-        parser.add_argument("--lr", type=float, default=0, help="Set learning rate of Adam optimzer.")        
+        parser.add_argument("--lr", type=float, default=1e-3, help="Set learning rate of Adam optimzer.")        
         parser.add_argument("--experiment_name", type=str, default=None, help='Postfix name of experiment')         
         return parser
 
@@ -184,21 +184,24 @@ class MyDataModule(pl.LightningDataModule):
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize,
                                                                                  data_patchsize = self.data_patchsize,), 
-                                transform=datasets.augmentation_train())
+                                transform=datasets.augmentation_train(),
+                                adaptive_hist_range= False)
         
         self.validset = fn_call(self.data_dir, 
                                 'valid',
                                 transform_spatial = datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize), 
-                                transform=datasets.augmentation_valid())
+                                transform=datasets.augmentation_valid(),
+                                adaptive_hist_range= False)
         
         self.testset = fn_call(self.data_dir, 
                                'test',
                                 transform_spatial = datasets.augmentation_imagesize(data_padsize = self.data_padsize,
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize), 
-                                transform=datasets.augmentation_valid())
+                                transform=datasets.augmentation_valid(),
+                                adaptive_hist_range= False)
         
     def train_dataloader(self):
         return DataLoader(self.trainset, batch_size=self.batch_size, num_workers=self.num_workers)
@@ -242,7 +245,7 @@ def main(args: Namespace):
     model = SegModel(**vars(args))
     if args.net_ckpt is not None:
         ckpt = natsorted(glob.glob(args.net_ckpt+'/**/*.ckpt'))
-        model = SegModel.load_from_checkpoint(checkpoint_path = ckpt[-1],**vars(args))
+        model = SegModel.load_from_checkpoint(checkpoint_path = ckpt[-1], strict=False, **vars(args))
         print(ckpt[-1],'is loaded')
     assert args.project != None, "You should set wandb-logger project name by option --project [PROJECT_NAME]"
     print('project', args.project)
@@ -253,8 +256,8 @@ def main(args: Namespace):
     from pytorch_lightning import loggers as pl_loggers
     from pytorch_lightning.callbacks import ModelCheckpoint,LearningRateMonitor, StochasticWeightAveraging, LambdaCallback, EarlyStopping
     
-    args.experiment_name = "Dataset{}_Net{}_Netinputch{}_Netoutputch{}_Loss{}_Lr{}_Precision{}_Patchsize{}_Prefix{}_"\
-    .format(args.data_dir.split('/')[-1], args.net, args.net_inputch, args.net_outputch, args.lossfn, args.lr, args.precision,args.data_patchsize,args.experiment_name)
+    args.experiment_name = "Dataset{}_Net{}_Netnorm{}_Netinputch{}_Netoutputch{}_Loss{}_Lr{}_Precision{}_Patchsize{}_Prefix{}_"\
+    .format(args.data_dir.split('/')[-1], args.net, args.net_norm, args.net_inputch, args.net_outputch, args.lossfn, args.lr, args.precision,args.data_patchsize,args.experiment_name)
     print('Current Experiment:',args.experiment_name,'\n','*'*100)
     
     os.makedirs('logs',mode=0o777, exist_ok=True)
@@ -263,10 +266,10 @@ def main(args: Namespace):
     wb_logger.watch(model,log="all", log_freq=10)
         
     Checkpoint_callback = ModelCheckpoint(verbose=True, 
-                                          monitor='loss_val',
-                                          mode='min',
-#                                           monitor='metric_val',
-#                                           mode='max',
+#                                           monitor='loss_val',
+#                                           mode='min',
+                                          monitor='metric_val',
+                                          mode='max',
                                           filename='{epoch:04d}-{loss_val:.4f}-{metric_val:.4f}',
                                           save_top_k=3,)
     
@@ -279,11 +282,12 @@ def main(args: Namespace):
                                             callbacks=[Checkpoint_callback,
                                                        LearningRateMonitor(),
                                                        StochasticWeightAveraging(),
-                                                       EarlyStopping(monitor='loss_val',patience=200),
+#                                                        EarlyStopping(monitor='loss_val',patience=100),
+                                                       EarlyStopping(monitor='metric_val',mode='max',patience=300),
                                                       ],
                                             deterministic=True,
                                             gpus = -1,
-                                            gradient_clip_val = 0.5,
+#                                             gradient_clip_val = 0.5,
                                             logger = wb_logger,
                                             log_every_n_steps=1,
                                             max_epochs = 2000,
