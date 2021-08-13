@@ -275,14 +275,6 @@ inv_filters = torch.stack([rec_lo.unsqueeze(0)*rec_lo.unsqueeze(1),
                            rec_hi.unsqueeze(0)*rec_lo.unsqueeze(1),
                            rec_hi.unsqueeze(0)*rec_hi.unsqueeze(1)], dim=0)
 
-filters = torch.stack([dec_lo.unsqueeze(0)*dec_lo.unsqueeze(1),
-                       dec_lo.unsqueeze(0)*dec_hi.unsqueeze(1),
-                       dec_hi.unsqueeze(0)*dec_lo.unsqueeze(1),
-                       dec_hi.unsqueeze(0)*dec_hi.unsqueeze(1)], dim=0)
-inv_filters = torch.stack([rec_lo.unsqueeze(0)*rec_lo.unsqueeze(1),
-                           rec_lo.unsqueeze(0)*rec_hi.unsqueeze(1),
-                           rec_hi.unsqueeze(0)*rec_lo.unsqueeze(1),
-                           rec_hi.unsqueeze(0)*rec_hi.unsqueeze(1)], dim=0)
 
 def wt(vimg):
     padded = vimg
