@@ -5,6 +5,51 @@ import numpy as np
 import monai
 import kornia
 from monai.networks.utils import one_hot
+import skimage
+import skimage.morphology
+import pylab as plt
+
+def torch_dilation(tensor,theta0=1):
+    '''
+    binary 
+    '''
+    result = F.max_pool2d(tensor, kernel_size=theta0, stride=1, padding=(theta0 - 1) // 2)
+    result[result!=0]=1
+    return result
+
+def torch_erosion(tensor,theta0=1):
+    '''
+    binary 
+    '''
+    result = -F.max_pool2d(- tensor, kernel_size=theta0, stride=1, padding=(theta0 - 1) // 2)
+#     result[result!=0]=1
+#     print(torch.unique(result))
+    return result
+
+def torch_closed(tensor,theta0=1):
+    '''
+    binary 
+    '''
+    result = torch_dilate(tensor,theta0)
+    result = torch_erosion(result,theta0)
+    return result
+
+def torch_skeleton(x, thresh_width=10):
+    '''
+    Differenciable aproximation of morphological skelitonization operaton
+    thresh_width - maximal expected width of vessel
+    '''
+    for i in range(thresh_width):
+        min_pool_x = torch.nn.functional.max_pool2d(x*-1, (3, 3), 1, 1)*-1
+        contour = torch.nn.functional.relu(torch.nn.functional.max_pool2d(min_pool_x, (3, 3), 1, 1) - min_pool_x)
+        x = torch.nn.functional.relu(x - contour)
+    return x
+
+# label_dilate = torch_dilate(y,2)
+# label_erosion = torch_erosion(y,2)
+# label_closed = torch_closed(y,2)
+
+# label_skel = torch_dilate(soft_skeletonize(y),2)
 
 # class twLoss(nn.Module):
 #     def __init__(self):
@@ -22,10 +67,59 @@ from monai.networks.utils import one_hot
 #         loss = self.ce(yhat,y)
 #         return loss 
 
+def skel_iweight(tensor):
+    '''
+    input shape : B X C X H X W
+    '''
+    numpy = tensor.cpu().detach().numpy()
+    result = np.zeros_like(numpy)
+    for idx_b in range(tensor.shape[0]):
+        for idx_c in range(tensor.shape[1]):
+            skel,dst = skimage.morphology.medial_axis(numpy[idx_b,idx_c], return_distance=True)
+            temp = skel*dst
+            temp[temp==0] = 255
+            result[idx_b,idx_c] = 1/temp
+    return torch.tensor(result).cuda()
+
+
+# class skel_FocalLoss(nn.Module):
+#     def __init__(self):
+#         super(skel_FocalLoss, self).__init__()
+#         self.ce = monai.losses.FocalLoss(to_onehot_y = True, gamma = 2.0)
+        
+#     def forward(self,yhat,y):
+#         loss = self.ce(yhat,y)
+        
+#         kernel = torch.ones(7,7).cuda()
+#         yhat_ = kornia.morphology.dilation(torch_skeleton(yhat),kernel,)
+#         y_ = kornia.morphology.dilation(torch_skeleton(y),kernel)
+#         loss_iw = self.ce(yhat_,y_)
+#         return loss + loss_iw
+
+class skel_FocalLoss(nn.Module):
+    def __init__(self):
+        super(skel_FocalLoss, self).__init__()
+        self.ce = monai.losses.FocalLoss(to_onehot_y = True, gamma = 4.0)
+        self.dice = monai.losses.GeneralizedDiceLoss(to_onehot_y=True, softmax=False)
+#         self.dice = monai.losses.TverskyLoss(to_onehot_y=True, alpha= 0.7, softmax=False)
+        
+    def forward(self,yhat,y):
+        loss_ce = self.ce(yhat,y)
+        loss_dice = self.dice(yhat,y)
+        
+        kernel = torch.ones(3,3).cuda()
+        yhat_skel = kornia.morphology.dilation(torch_skeleton(yhat),kernel)
+        y_skel = kornia.morphology.dilation(torch_skeleton(y),kernel)
+        
+        loss_ce_skel = self.ce(yhat_skel,y_skel)
+        loss_dice_skel = self.dice(yhat_skel,y_skel)
+        return loss_ce + loss_ce_skel + loss_dice + loss_dice_skel
+
+    
 class FocalLoss(nn.Module):
     def __init__(self):
         super(FocalLoss, self).__init__()
-        self.ce = monai.losses.FocalLoss(to_onehot_y = True, gamma = 4.0)
+        self.ce = monai.losses.FocalLoss(to_onehot_y = True, gamma = 2.0)
         
     def forward(self,yhat,y):
         loss = self.ce(yhat,y)

@@ -42,7 +42,8 @@ class SegModel(pl.LightningModule):
                         lr = 1e-3,
                         net = 'unet_eb5_batch',
                         net_inputch = 1,
-                        net_outputch = 1,
+                        net_outputch = 2,
+                        net_activation = 'relu',
                         net_norm = 'batch',
                         net_nnblock = False,
                         net_supervision = False,
@@ -64,6 +65,7 @@ class SegModel(pl.LightningModule):
         self.net_norm = net_norm
         self.net_nnblock = net_nnblock
         self.net_supervision = net_supervision
+        self.net_activation = net_activation
         self.precision = precision
         self.project = project
         self.lr =lr
@@ -82,9 +84,15 @@ class SegModel(pl.LightningModule):
         elif self.net_norm == 'group':
             self.net = nets.bn2group(self.net)
             print('net_norms were replaced to group normalizations')           
+      
+        if self.net_activation == 'leakyrelu':
+            self.net = nets.relu2lrelu(self.net)
+        elif self.net_activation == 'gelu':
+            self.net = nets.relu2gelu(self.net)
         
         # metric
-        self.metric = torchmetrics.F1(self.net_outputch)
+#         self.metric = torchmetrics.F1(num_classes = self.net_outputch, average = 'none')[-1]
+        self.metric = torchmetrics.F1(num_classes = self.net_outputch)
         
     def forward(self, x):
         return self.net(x)
@@ -107,7 +115,7 @@ class SegModel(pl.LightningModule):
         
 #         yhat = self(x) # changed to sliding window method
         roi_size = int(self.data_patchsize) if len(self.data_patchsize.split('_'))==1 else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1]))
-        yhat = sliding_window_inference(inputs=x,roi_size=roi_size,sw_batch_size=4,predictor=self.net,overlap=0.5,mode='constant')
+        yhat = sliding_window_inference(inputs=x, roi_size=roi_size, sw_batch_size=4, predictor=self.net, overlap=0.5, mode='constant')
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
         metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
@@ -124,10 +132,10 @@ class SegModel(pl.LightningModule):
         """
         if self.lr != 0:
             optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.8, patience=20, min_lr=1e-7)    
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.8, patience=20, min_lr=1e-6)    
         else:
             optimizer = torch.optim.SGD(self.net.parameters(), lr=1e-7, weight_decay = 0.0005, momentum=0.9)
-            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.9)
+            scheduler = utils.CosineAnnealingWarmUpRestarts(optimizer, T_0=100, T_mult=1, eta_max=0.01, T_up=10, gamma=0.8)
         return {'optimizer': optimizer,
                 'lr_scheduler': {'scheduler': scheduler,
                                  'monitor': 'loss_val'}
@@ -145,6 +153,7 @@ class SegModel(pl.LightningModule):
                 return False
             else:
                 return v
+            
         parser.add_argument("--project", type=str, help="wandb project name, this will set your wandb project")
         parser.add_argument("--data_dir", type=str, help="path where dataset is stored, subfolders name should be x_train, y_train")
         parser.add_argument("--data_module", type=str,default='dataset', help="Data Module, see datasets.py")
@@ -161,6 +170,7 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--net_ckpt", type=str2bool, default=None, help='path to checkpoint, ex) logs/[PROJECT]/[ID]')          
         parser.add_argument("--net_nnblock", type=str2bool, default=False, help='nnblock')              
         parser.add_argument("--net_supervision", type=str2bool, default=False, help='supervision')        
+        parser.add_argument("--net_activation", type=str2bool, default='relu', help='activation')        
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
         parser.add_argument("--lr", type=float, default=1e-3, help="Set learning rate of Adam optimzer.")        
         parser.add_argument("--experiment_name", type=str, default=None, help='Postfix name of experiment')         
@@ -299,7 +309,6 @@ def main(args: Namespace):
                                                       ],
                                             deterministic=True,
                                             gpus = -1,
-#                                             gradient_clip_val = 0.5,
                                             logger = wb_logger,
                                             log_every_n_steps=1,
                                             max_epochs = 2000,

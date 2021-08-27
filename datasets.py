@@ -70,7 +70,9 @@ class dataset():
         x = cv2.imread(self.x_list[idx])
         y = cv2.imread(self.y_list[idx])
         x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
-        
+        y[y<=1] = 0
+        y[y!=0] = 1
+
         # shape check
         if len(y.shape)==2:
             y = np.expand_dims(y,-1)
@@ -134,7 +136,10 @@ class dataset_adaptivehist():
         x = cv2.imread(self.x_list[idx])
         y = cv2.imread(self.y_list[idx])
         x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
-        
+        y[y<=1] = 0
+        y[y!=0] = 1
+#         print(np.unique(y))
+
         # shape check
         if len(y.shape)==2:
             y = np.expand_dims(y,-1)
