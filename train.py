@@ -103,9 +103,10 @@ class SegModel(pl.LightningModule):
         yhat = self(x)
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
+        yhat = yhat.detach()
         metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
 
-        self.log('loss', loss, prog_bar=True)
+        self.log('loss', loss.detach().item(), prog_bar=True)
         self.log('metric', metric, prog_bar=True)
         self.logger.experiment.log({'image_train' : wb_mask(x, yhat, y)}) # wandb.log({'train' : wb_mask(x, yhat, y)})
         return {'loss': loss}
@@ -118,9 +119,10 @@ class SegModel(pl.LightningModule):
         yhat = sliding_window_inference(inputs=x, roi_size=roi_size, sw_batch_size=4, predictor=self.net, overlap=0.5, mode='constant')
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
+        yhat = yhat.detach()
         metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
 
-        self.log('loss_val', loss, prog_bar=True)
+        self.log('loss_val', loss.detach().item(), prog_bar=True)
         self.log('metric_val', metric, prog_bar=True)
         self.logger.experiment.log({'image_val' : wb_mask(x, yhat, y)})
         return {'loss_val': loss}    

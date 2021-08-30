@@ -43,17 +43,17 @@ class dataset():
         
         self.data_root = data_root
         if dataset_type =='train':
-            self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_train/*'))
+            self.x_list = np.array(natsorted(glob.glob(data_root+'/x_train/*')))
+            self.y_list = np.array(natsorted(glob.glob(data_root+'/y_train/*')))
         elif dataset_type =='valid':
-            self.x_list = natsorted(glob.glob(data_root+'/x_valid/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_valid/*'))
+            self.x_list = np.array(natsorted(glob.glob(data_root+'/x_valid/*')))
+            self.y_list = np.array(natsorted(glob.glob(data_root+'/y_valid/*')))
         elif dataset_type =='test':
-            self.x_list = natsorted(glob.glob(data_root+'/x_test/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_test/*'))
+            self.x_list = np.array(natsorted(glob.glob(data_root+'/x_test/*')))
+            self.y_list = np.array(natsorted(glob.glob(data_root+'/y_test/*')))
         elif dataset_type =='etest':
-            self.x_list = natsorted(glob.glob(data_root+'/x_etest/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
+            self.x_list = np.array(natsorted(glob.glob(data_root+'/x_etest/*')))
+            self.y_list = np.array(natsorted(glob.glob(data_root+'/y_etest/*')))
             self.x_list = self.x_list[:1]
         
         self.transform = transform
