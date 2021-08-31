@@ -40,7 +40,7 @@ class SegModel(pl.LightningModule):
                         gpus = -1,
                         lossfn = 'CELoss',
                         lr = 1e-3,
-                        net = 'unet_eb5_batch',
+                        net = 'unet_eb5',
                         net_inputch = 1,
                         net_outputch = 2,
                         net_activation = 'relu',
@@ -76,8 +76,11 @@ class SegModel(pl.LightningModule):
 
         # net
         fn_call = getattr(nets, net)
-        self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch, nnblock=self.net_nnblock, supervision=self.net_supervision)
-        
+        try:
+            self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch, nnblock=self.net_nnblock, supervision=self.net_supervision)
+        except:
+            self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch)
+            
         if self.net_norm == 'instance':
             self.net = nets.bn2instance(self.net)
             print('net_norms were replaced to instance normalizations')
@@ -91,8 +94,7 @@ class SegModel(pl.LightningModule):
             self.net = nets.relu2gelu(self.net)
         
         # metric
-#         self.metric = torchmetrics.F1(num_classes = self.net_outputch, average = 'none')[-1]
-        self.metric = torchmetrics.F1(num_classes = self.net_outputch)
+        self.metric = torchmetrics.F1(num_classes = self.net_outputch) if self.net_outputch >=2 else 0 
         
     def forward(self, x):
         return self.net(x)
@@ -103,11 +105,15 @@ class SegModel(pl.LightningModule):
         yhat = self(x)
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
-        metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
-
+        try:
+            metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
+        except:
+            metric = torch.tensor([0]).cuda()
+        print('x',torch.unique(x),'y',torch.unique(y),'yhat',torch.unique(yhat))
         self.log('loss', loss, prog_bar=True)
         self.log('metric', metric, prog_bar=True)
         self.logger.experiment.log({'image_train' : wb_mask(x, yhat, y)}) # wandb.log({'train' : wb_mask(x, yhat, y)})
+        self.logger.experiment.log({'image_train_raw' : wb_image(x, yhat, y, name='train')})
         return {'loss': loss}
     
     def validation_step(self, batch, batch_idx):
@@ -118,11 +124,14 @@ class SegModel(pl.LightningModule):
         yhat = sliding_window_inference(inputs=x, roi_size=roi_size, sw_batch_size=4, predictor=self.net, overlap=0.5, mode='constant')
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
-        metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
-
+        try:
+            metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
+        except:
+            metric = torch.tensor([0]).cuda()
         self.log('loss_val', loss, prog_bar=True)
         self.log('metric_val', metric, prog_bar=True)
         self.logger.experiment.log({'image_val' : wb_mask(x, yhat, y)})
+        self.logger.experiment.log({'image_val_raw' : wb_image(x, yhat, y, name='valid')})
         return {'loss_val': loss}    
 
     def configure_optimizers(self):
@@ -206,7 +215,8 @@ class MyDataModule(pl.LightningDataModule):
                                                                                  data_cropsize = self.data_cropsize,
                                                                                  data_resize = self.data_resize,
                                                                                  data_patchsize = self.data_patchsize,), 
-                                transform=datasets.augmentation_train(),
+#                                 transform=datasets.augmentation_train(),
+                                transform=datasets.augmentation_valid(),
                                 adaptive_hist_range= False)
         
         self.validset = fn_call(self.data_dir, 
@@ -259,6 +269,21 @@ def wb_mask(x, yhat, y, samples=2):
     "prediction" : {"mask_data" : yhat, "class_labels" : labels()},
     "ground truth" : {"mask_data" : y, "class_labels" : labels()}})
 
+def wb_image(x, yhat, y, samples=2, name = 'train'):
+    
+    x = torchvision.utils.make_grid(x[:samples].cpu().detach(),normalize=True).permute(1,2,0)
+    y = torchvision.utils.make_grid(y[:samples].cpu().detach(),normalize=True).permute(1,2,0)
+    yhat = utils.Activation(yhat)
+    yhat = torchvision.utils.make_grid(yhat[:samples].cpu().detach()).permute(1,2,0)
+    x = x.numpy()
+    y = y.numpy()
+    yhat = yhat.numpy()
+#     wandb.log({name+"_x": [wandb.Image(x, caption="x")]})
+#     wandb.log({name+"_y": [wandb.Image(y, caption="y")]})
+#     wandb.log({name+"_yhat": [wandb.Image(yhat, caption="yhat")]})
+    wandb.log({name+"_x": [wandb.Image(x, caption="x")],name+"_y": [wandb.Image(y, caption="y")], name+"_yhat": [wandb.Image(yhat, caption="yhat")]})
+#     print('x {} y {} yhat {}'.format(np.unique(x),np.unique(y),np.unique(yhat)))
+    return 0
 
 def main(args: Namespace):
     # ------------------------
@@ -288,10 +313,10 @@ def main(args: Namespace):
     wb_logger.watch(model,log="all", log_freq=10)
         
     Checkpoint_callback = ModelCheckpoint(verbose=True, 
-#                                           monitor='loss_val',
-#                                           mode='min',
-                                          monitor='metric_val',
-                                          mode='max',
+                                          monitor='loss_val',
+                                          mode='min',
+#                                           monitor='metric_val',
+#                                           mode='max',
                                           filename='{epoch:04d}-{loss_val:.4f}-{metric_val:.4f}',
                                           save_top_k=3,)
     

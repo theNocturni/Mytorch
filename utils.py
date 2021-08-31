@@ -1,4 +1,3 @@
-# temp
 import numpy as np
 import torch
 import torch.nn as nn
@@ -37,8 +36,10 @@ def metrics(yhat, y, prefix=''):
             'iou'+prefix:iou,
             'accuracy'+prefix:accuracy}
 
-def Activation(tensor,T=1):
-    if tensor.shape[1] != 1:
+def Activation(tensor,T=1,recon=True):
+    if recon==True:
+        return tensor
+    elif tensor.shape[1] != 1:
         return F.softmax(tensor/T,1)
     else:
         return F.sigmoid(tensor/T)

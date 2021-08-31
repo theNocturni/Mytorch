@@ -5,8 +5,6 @@ from torch.nn import init
 import monai
 import segmentation_models_pytorch as smp
 
-groupnorm_parameter = 16
-
 def init_weights(net, init_type='normal', gain=0.02):
     def init_func(m):
         classname = m.__class__.__name__
@@ -122,7 +120,6 @@ def relu2gelu(module):
     del module
     return module_output
 
-
 # def conv2ws(module):
 #     module_output = module
 #     if isinstance(module, torch.nn.modules.BatchNorm):
@@ -169,8 +166,24 @@ class manet_eb5(nn.Module):
             pass
         
     def forward(self,x):
-        return self.net(x)    
+        return self.net(x)
     
+class unet(nn.Module):
+    def __init__(self, net_inputch=3, net_outputch=2):
+        super(unet, self).__init__()        
+        self.net_inputch = net_inputch
+        self.net_outputch = net_outputch  
+        self.net = smp.Unet(
+                        encoder_name='resnet50',
+                        decoder_use_batchnorm = True,
+                        decoder_attention_type = 'scse',
+                        encoder_depth=5,
+                        in_channels=self.net_inputch, 
+                        classes=self.net_outputch,)
+    def forward(self,x):
+        return self.net(x)    
+
+
 class unet_eb5(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
         super(unet_eb5, self).__init__()        
@@ -216,43 +229,6 @@ class segresnet(nn.Module):
 
     def forward(self,x):
         return self.net(x)
-    
-# # wavelet Unet
-# import pywt
-# import torch
-# from torch.autograd import Variable
-
-# w=pywt.Wavelet('db1')
-# dec_hi = torch.Tensor(w.dec_hi[::-1]) 
-# dec_lo = torch.Tensor(w.dec_lo[::-1])
-# rec_hi = torch.Tensor(w.rec_hi)
-# rec_lo = torch.Tensor(w.rec_lo)
-# filters = torch.stack([dec_lo.unsqueeze(0)*dec_lo.unsqueeze(1)/2.0,
-#                        dec_lo.unsqueeze(0)*dec_hi.unsqueeze(1),
-#                        dec_hi.unsqueeze(0)*dec_lo.unsqueeze(1),
-#                        dec_hi.unsqueeze(0)*dec_hi.unsqueeze(1)], dim=0)
-# inv_filters = torch.stack([rec_lo.unsqueeze(0)*rec_lo.unsqueeze(1)*2.0,
-#                            rec_lo.unsqueeze(0)*rec_hi.unsqueeze(1),
-#                            rec_hi.unsqueeze(0)*rec_lo.unsqueeze(1),
-#                            rec_hi.unsqueeze(0)*rec_hi.unsqueeze(1)], dim=0)
-
-# def wt(vimg):
-#     padded = vimg
-#     res = torch.zeros(vimg.shape[0],4*vimg.shape[1],int(vimg.shape[2]/2),int(vimg.shape[3]/2))
-#     res = res.cuda()
-#     for i in range(padded.shape[1]):
-#         res[:,4*i:4*i+4] = torch.nn.functional.conv2d(padded[:,i:i+1], Variable(filters[:,None].cuda(),requires_grad=True),stride=2)
-#         res[:,4*i+1:4*i+4] = (res[:,4*i+1:4*i+4]+1)/2.0
-#     return res
-
-# def iwt(vres):
-#     res = torch.zeros(vres.shape[0],int(vres.shape[1]/4),int(vres.shape[2]*2),int(vres.shape[3]*2))
-#     res = res.cuda()
-#     for i in range(res.shape[1]):
-#         vres[:,4*i+1:4*i+4]=2*vres[:,4*i+1:4*i+4]-1
-#         temp = torch.nn.functional.conv_transpose2d(vres[:,4*i:4*i+4], Variable(inv_filters[:,None].cuda(),requires_grad=True),stride=2)
-#         res[:,i:i+1,:,:] = temp
-#     return res
 
 import pywt
 import torch
@@ -303,9 +279,9 @@ def iwt(vres):
     return res
 
 class waveletunet_base(nn.Module):
-    def __init__(self,net_inputch=3, net_outputch=2, num_c=32, Attention=False, RCNN=False, nnblock = False, supervision=False):
+    def __init__(self,net_inputch=3, net_outputch=2, num_c=32, attention=False, RCNN=False, nnblock = False, supervision=False):
         super(waveletunet_base,self).__init__()
-        self.Attention = Attention
+        self.attention = attention
         self.RCNN = RCNN
         self.nnblock = nnblock
         self.supervision = supervision
@@ -319,13 +295,19 @@ class waveletunet_base(nn.Module):
         self.Up_conv5 = conv_block(ch_in=num_c*16, ch_out=num_c*16)
         self.Up_conv4 = conv_block(ch_in=num_c*8, ch_out=num_c*8)
         self.Up_conv3 = conv_block(ch_in=num_c*4, ch_out=num_c*4)
-        self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
+        self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c*1)
         
-        if self.Attention:
-            self.Att5 = Attention_block(F_g=num_c*8,F_l=num_c*8,F_int=num_c*8)
-            self.Att4 = Attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
-            self.Att3 = Attention_block(F_g=num_c*2,F_l=num_c*2,F_int=num_c*2)
-            self.Att2 = Attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
+        if self.wavelet:
+            self.Up5 = up_conv(ch_in=num_c*16, ch_out=num_c*16)
+            self.Up5 = up_conv(ch_in=num_c*8, ch_out=num_c*8)
+            self.Up5 = up_conv(ch_in=num_c*4, ch_out=num_c*4)
+            self.Up5 = up_conv(ch_in=num_c*2, ch_out=num_c*1)
+        
+        if self.attention:
+            self.Att5 = attention_block(F_g=num_c*8,F_l=num_c*8,F_int=num_c*8)
+            self.Att4 = attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
+            self.Att3 = attention_block(F_g=num_c*2,F_l=num_c*2,F_int=num_c*2)
+            self.Att2 = attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
 
         if self.RCNN:
             t = 2
@@ -400,28 +382,28 @@ class waveletunet_base(nn.Module):
 
         # decoding + concat path
         d5=iwt(x5)#         d5 = self.Up5(d5)
-        x4 = self.Att5(g=d5,x=x4) if self.Attention == True else x4
+        x4 = self.Att5(g=d5,x=x4) if self.attention == True else x4
         d5 = torch.cat((x4,d5),dim=1)
         d5 = self.nnblock16(d5) if self.nnblock else d5
         d5 = self.Up_conv5(d5) if self.RCNN == False else self.Up_RRCNN5(d5)
 #         print('d5',d5.shape)
 
         d4=iwt(d5)#         d4 = self.Up4(d5)
-        x3 = self.Att4(g=d4,x=x3) if self.Attention == True else x3
+        x3 = self.Att4(g=d4,x=x3) if self.attention == True else x3
         d4 = torch.cat((x3,d4),dim=1)
         d4 = self.nnblock8(d4) if self.nnblock else d4
         d4 = self.Up_conv4(d4) if self.RCNN == False else self.Up_RRCNN4(d4)
 #         print('d4',d4.shape)
 
         d3=iwt(d4)#         d3 = self.Up3(d4)
-        x2 = self.Att3(g=d3,x=x2) if self.Attention == True else x2
+        x2 = self.Att3(g=d3,x=x2) if self.attention == True else x2
         d3 = torch.cat((x2,d3),dim=1)
         d3 = self.nnblock4(d3) if self.nnblock else d3
         d3 = self.Up_conv3(d3) if self.RCNN == False else self.Up_RRCNN3(d3)
 #         print('d3',d3.shape)
 
         d2=iwt(d3)#         d2 = self.Up2(d3)
-        x1 = self.Att2(g=d2,x=x1) if self.Attention == True else x1
+        x1 = self.Att2(g=d2,x=x1) if self.attention == True else x1
         d2 = torch.cat((x1,d2),dim=1)
 #         d2 = self.nnblock2(d2) if self.nnblock else d2
         d2 = self.Up_conv2(d2) if self.RCNN == False else self.Up_RRCNN2(d2)
@@ -445,38 +427,189 @@ class waveletunet_base(nn.Module):
         return d1
 
 
+
+class unet_base(nn.Module):
+    def __init__(self,net_inputch=3, net_outputch=2, num_c=32, wavelet=False, attention=False, rcnn=False, nnblock = False, supervision=False):
+        super(waveletunet_base,self).__init__()
+        
+        self.attention = attention
+        self.rcnn = rcnn
+        self.nnblock = nnblock
+        self.supervision = supervision
+        self.wavelet = wavelet
+        
+        self.Conv1 = conv_block(ch_in=net_inputch, ch_out=num_c)
+        self.Conv2 = conv_block(ch_in=num_c*4,ch_out=num_c*2)
+        self.Conv3 = conv_block(ch_in=num_c*8,ch_out=num_c*4)
+        self.Conv4 = conv_block(ch_in=num_c*16,ch_out=num_c*8)
+        self.Conv5 = conv_block(ch_in=num_c*32,ch_out=num_c*32)
+
+        self.Up_conv5 = conv_block(ch_in=num_c*16, ch_out=num_c*16)
+        self.Up_conv4 = conv_block(ch_in=num_c*8, ch_out=num_c*8)
+        self.Up_conv3 = conv_block(ch_in=num_c*4, ch_out=num_c*4)
+        self.Up_conv2 = conv_block(ch_in=num_c*2,ch_out=num_c)
+        
+        if self.wavelet:
+            self.Up5 = up_conv(ch_in=num_c*16, ch_out=num_c*16)
+            self.Up5 = up_conv(ch_in=num_c*8, ch_out=num_c*8)
+            self.Up5 = up_conv(ch_in=num_c*4, ch_out=num_c*4)
+            self.Up5 = up_conv(ch_in=num_c*2, ch_out=num_c*1)
+            
+        if self.attention:
+            self.Att5 = attention_block(F_g=num_c*8,F_l=num_c*8,F_int=num_c*8)
+            self.Att4 = attention_block(F_g=num_c*4,F_l=num_c*4,F_int=num_c*4)
+            self.Att3 = attention_block(F_g=num_c*2,F_l=num_c*2,F_int=num_c*2)
+            self.Att2 = attention_block(F_g=num_c,F_l=num_c,F_int=num_c)
+
+        if self.rcnn:
+            t = 2
+            self.RRCNN1 = RRCNN_block(ch_in=net_inputch,ch_out=num_c,t=t)
+            self.RRCNN2 = RRCNN_block(ch_in=num_c*4,ch_out=num_c*2,t=t)
+            self.RRCNN3 = RRCNN_block(ch_in=num_c*8,ch_out=num_c*4,t=t) 
+            self.RRCNN4 = RRCNN_block(ch_in=num_c*16,ch_out=num_c*8,t=t)      
+            self.RRCNN5 = RRCNN_block(ch_in=num_c*32,ch_out=num_c*32,t=t)
+
+            self.Up_RRCNN5 = RRCNN_block(ch_in=num_c*16, ch_out=num_c*16,t=t)
+            self.Up_RRCNN4 = RRCNN_block(ch_in=num_c*8, ch_out=num_c*8,t=t)
+            self.Up_RRCNN3 = RRCNN_block(ch_in=num_c*4, ch_out=num_c*4,t=t)
+            self.Up_RRCNN2 = RRCNN_block(ch_in=num_c*2,ch_out=num_c,t=t)
+
+        if nnblock==True:        
+            self.nnblock1 = NONLocalBlock2D(num_c*1)
+            self.nnblock2 = NONLocalBlock2D(num_c*2)
+            self.nnblock4 = NONLocalBlock2D(num_c*4)
+            self.nnblock8 = NONLocalBlock2D(num_c*8)
+            self.nnblock16 = NONLocalBlock2D(num_c*16)
+            self.nnblock32 = NONLocalBlock2D(num_c*32)
+            
+        if supervision==True:
+            self.Conv_final = nn.Sequential(
+                    nn.Conv2d(int(num_c+num_c+num_c/2+num_c/4), num_c, kernel_size=3,stride=1,padding=1,bias=True), # all layers
+#                     nn.Conv2d(int(num_c+num_c+num_c/2), num_c, kernel_size=3,stride=1,padding=1,bias=True), # layers except d5
+                    nn.BatchNorm2d(num_c),
+                    nn.ReLU(),
+                    nn.Conv2d(num_c, num_c, kernel_size=3,stride=1,padding=1,bias=True),
+                    nn.BatchNorm2d(num_c),
+                    nn.ReLU(),
+                    nn.Conv2d(num_c, net_outputch, kernel_size=1,stride=1,padding=0,bias=True),
+            )
+        else:
+            self.Conv_final = nn.Sequential(
+                    nn.Conv2d(num_c, num_c, kernel_size=3,stride=1,padding=1,bias=True),
+                    nn.BatchNorm2d(num_c),
+                    nn.ReLU(),
+                    nn.Conv2d(num_c, num_c, kernel_size=3,stride=1,padding=1,bias=True),
+                    nn.BatchNorm2d(num_c),
+                    nn.ReLU(),
+                    nn.Conv2d(num_c, net_outputch, kernel_size=1,stride=1,padding=0,bias=True),
+            )
+            
+                
+    def forward(self,x):
+#         print('x',x.shape)
+
+        # encoding path
+        x1 = self.Conv1(x) if self.rcnn==False else self.RRCNN1(x)
+#         print('x1',x1.shape)
+
+        x2 = wt(x1) if self.wavelet == True else self.Maxpool(x1)
+        x2 = self.nnblock4(x2) if self.nnblock else x2
+        x2 = self.Conv2(x2) if self.rcnn==False else self.RRCNN2(x2)
+#         print('x2',x2.shape)
+
+        x3 = wt(x2) if self.wavelet == True else self.Maxpool(x2)
+        x3 = self.nnblock8(x3) if self.nnblock else x3
+        x3 = self.Conv3(x3) if self.rcnn==False else self.RRCNN3(x3)
+#         print('x3',x3.shape)
+
+        x4 = wt(x3) if self.wavelet == True else  self.Maxpool(x3)
+        x4 = self.nnblock16(x4) if self.nnblock else x4
+        x4 = self.Conv4(x4) if self.rcnn==False else self.RRCNN4(x4)
+#         print('x4',x4.shape)
+
+        x5 = wt(x4) if self.wavelet == True else self.Maxpool(x4)
+        x5 = self.nnblock32(x5) if self.nnblock else x5
+        x5 = self.Conv5(x5) if self.rcnn==False else self.RRCNN5(x5)
+#         print('x5',x5.shape)
+
+        # decoding + concat path
+        d5=iwt(x5) if self.wavelet == True else self.Up5(d5)
+        x4 = self.Att5(g=d5,x=x4) if self.attention == True else x4
+        d5 = torch.cat((x4,d5),dim=1)
+        d5 = self.nnblock16(d5) if self.nnblock else d5
+        d5 = self.Up_conv5(d5) if self.rcnn == False else self.Up_RRCNN5(d5)
+#         print('d5',d5.shape)
+
+        d4=iwt(d5) if self.wavelet == True else self.Up4(d5)
+        x3 = self.Att4(g=d4,x=x3) if self.attention == True else x3
+        d4 = torch.cat((x3,d4),dim=1)
+        d4 = self.nnblock8(d4) if self.nnblock else d4
+        d4 = self.Up_conv4(d4) if self.rcnn == False else self.Up_RRCNN4(d4)
+#         print('d4',d4.shape)
+
+        d3=iwt(d4) if self.wavelet == True else self.Up3(d4)
+        x2 = self.Att3(g=d3,x=x2) if self.attention == True else x2
+        d3 = torch.cat((x2,d3),dim=1)
+        d3 = self.nnblock4(d3) if self.nnblock else d3
+        d3 = self.Up_conv3(d3) if self.rcnn == False else self.Up_RRCNN3(d3)
+#         print('d3',d3.shape)
+
+        d2=iwt(d3) if self.wavelet == True else self.Up2(d3)
+        x1 = self.Att2(g=d2,x=x1) if self.attention == True else x1
+        d2 = torch.cat((x1,d2),dim=1)
+#         d2 = self.nnblock2(d2) if self.nnblock else d2
+        d2 = self.Up_conv2(d2) if self.rcnn == False else self.Up_RRCNN2(d2)
+#         print('d2',d2.shape)
+
+        if self.supervision:
+
+            s2 = d2
+            s3 = iwt(d3)
+            s4 = iwt(iwt(d4))
+            s5 = iwt(iwt(iwt(d5)))
+            
+            d2 = torch.cat((s2,s3,s4,s5),dim=1)
+#             d2 = torch.cat((s2,s3,s4),dim=1)
+            d1 = self.Conv_final(d2)
+            
+        else:
+            d1 = self.Conv_final(d2)            
+#         print('d1',d1.shape)
+
+        return d1
+
 class waveletunet_att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, Attention=False, RCNN=False, nnblock=False, supervision=False):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, attention=False, rcnn=False, nnblock=False, supervision=False):
         super(waveletunet_att,self).__init__()
 
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=False, nnblock=nnblock, supervision=supervision)
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, attention=True, RCNN=False, nnblock=nnblock, supervision=supervision)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat
 
 class waveletunet_r2(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, Attention=False, RCNN=False, nnblock=False, supervision=False):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, attention=False, RCNN=False, nnblock=False, supervision=False):
         super(waveletunet_r2,self).__init__()
         
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=False, RCNN=True, nnblock=nnblock, supervision=supervision)
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, attention=False, RCNN=True, nnblock=nnblock, supervision=supervision)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat
 
 class waveletunet_r2att(nn.Module):
-    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, Attention=False, RCNN=False, nnblock=False, supervision=False):
+    def __init__(self,net_inputch=3,net_outputch=2,num_c=32, attention=False, RCNN=False, nnblock=False, supervision=False):
         super(waveletunet_r2att,self).__init__()
         
-        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, Attention=True, RCNN=True, nnblock=nnblock, supervision=supervision)
+        self.base_net = waveletunet_base(net_inputch=net_inputch,net_outputch=net_outputch,num_c=num_c, attention=True, RCNN=True, nnblock=nnblock, supervision=supervision)
     def forward(self,x):
         yhat = self.base_net(x)
         return yhat
 
 
 class waveletFPN_base(nn.Module):
-    def __init__(self,net_inputch=3, net_outputch=2, num_c=32, Attention=False, RCNN=False, t=2, nnblock = False, supervision=False):
+    def __init__(self,net_inputch=3, net_outputch=2, num_c=32, attention=False, RCNN=False, t=2, nnblock = False, supervision=False):
         super(waveletunet_base,self).__init__()
-        self.Attention = Attention
+        self.attention = attention
         self.RCNN = RCNN
         self.nnblock = nnblock
         self.supervision = supervision
@@ -546,28 +679,28 @@ class waveletFPN_base(nn.Module):
 
         # decoding + concat path
         d5=iwt(x5)#         d5 = self.Up5(d5)
-        x4 = self.Att5(g=d5,x=x4) if self.Attention == True else x4
+        x4 = self.Att5(g=d5,x=x4) if self.attention == True else x4
         d5 = torch.cat((x4,d5),dim=1)
         d5 = self.Up_conv5(d5) if self.RCNN == False else self.Up_RRCNN5(d5)
 #         d5 = self.nnblock16(d5) if self.nnblock else d5
 #         print('d5',d5.shape)
 
         d4=iwt(d5)#         d4 = self.Up4(d5)
-        x3 = self.Att4(g=d4,x=x3) if self.Attention == True else x3
+        x3 = self.Att4(g=d4,x=x3) if self.attention == True else x3
         d4 = torch.cat((x3,d4),dim=1)
         d4 = self.Up_conv4(d4) if self.RCNN == False else self.Up_RRCNN4(d4)
 #         d4 = self.nnblock8(d4) if self.nnblock else d4
 #         print('d4',d4.shape)
 
         d3=iwt(d4)#         d3 = self.Up3(d4)
-        x2 = self.Att3(g=d3,x=x2) if self.Attention == True else x2
+        x2 = self.Att3(g=d3,x=x2) if self.attention == True else x2
         d3 = torch.cat((x2,d3),dim=1)
         d3 = self.Up_conv3(d3) if self.RCNN == False else self.Up_RRCNN3(d3)
 #         d3 = self.nnblock4(d3) if self.nnblock else d3
 #         print('d3',d3.shape)
 
         d2=iwt(d3)#         d2 = self.Up2(d3)
-        x1 = self.Att2(g=d2,x=x1) if self.Attention == True else x1
+        x1 = self.Att2(g=d2,x=x1) if self.attention == True else x1
         d2 = torch.cat((x1,d2),dim=1)
         d2 = self.Up_conv2(d2) if self.RCNN == False else self.Up_RRCNN2(d2)
 #         d2 = self.nnblock1(d2) if self.nnblock else d2
@@ -696,9 +829,9 @@ class single_conv(nn.Module):
         x = self.conv(x)
         return x
 
-class Attention_block(nn.Module):
+class attention_block(nn.Module):
     def __init__(self,F_g,F_l,F_int):
-        super(Attention_block,self).__init__()
+        super(attention_block,self).__init__()
 #         inplace= True
         inplace= False
 
@@ -877,19 +1010,19 @@ class AttU_Net(nn.Module):
         self.Conv5 = conv_block(ch_in=512,ch_out=1024,norm=norm)
 
         self.Up5 = up_conv(ch_in=1024,ch_out=512,norm=norm)
-        self.Att5 = Attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
+        self.Att5 = attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
         self.Up_conv5 = conv_block(ch_in=1024, ch_out=512,norm=norm)
 
         self.Up4 = up_conv(ch_in=512,ch_out=256,norm=norm)
-        self.Att4 = Attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
+        self.Att4 = attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
         self.Up_conv4 = conv_block(ch_in=512, ch_out=256,norm=norm)
         
         self.Up3 = up_conv(ch_in=256,ch_out=128,norm=norm)
-        self.Att3 = Attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
+        self.Att3 = attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
         self.Up_conv3 = conv_block(ch_in=256, ch_out=128,norm=norm)
         
         self.Up2 = up_conv(ch_in=128,ch_out=64,norm=norm)
-        self.Att2 = Attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
+        self.Att2 = attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
         self.Up_conv2 = conv_block(ch_in=128, ch_out=64,norm=norm)
         
         if norm != 'ws':
@@ -971,19 +1104,19 @@ class SoftMTL_AttUNet(nn.Module):
         self.Conv5 = conv_block(ch_in=512,ch_out=1024,norm=norm)
 
         self.Up5 = up_conv(ch_in=1024,ch_out=512,norm=norm)
-        self.Att5 = Attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
+        self.Att5 = attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
         self.Up_conv5 = conv_block(ch_in=1024, ch_out=512,norm=norm)
 
         self.Up4 = up_conv(ch_in=512,ch_out=256,norm=norm)
-        self.Att4 = Attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
+        self.Att4 = attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
         self.Up_conv4 = conv_block(ch_in=512, ch_out=256,norm=norm)
         
         self.Up3 = up_conv(ch_in=256,ch_out=128,norm=norm)
-        self.Att3 = Attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
+        self.Att3 = attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
         self.Up_conv3 = conv_block(ch_in=256, ch_out=128,norm=norm)
         
         self.Up2 = up_conv(ch_in=128,ch_out=64,norm=norm)
-        self.Att2 = Attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
+        self.Att2 = attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
         self.Up_conv2 = conv_block(ch_in=128, ch_out=64,norm=norm)
 
         self.Conv_1x1 = nn.Conv2d(64,output_ch,kernel_size=1,stride=1,padding=0)
@@ -1087,19 +1220,19 @@ class HardMTL_AttUNet(nn.Module):
         self.Conv5 = conv_block(ch_in=512,ch_out=1024,norm=norm)
 
         self.Up5 = up_conv(ch_in=1024,ch_out=512,norm=norm)
-        self.Att5 = Attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
+        self.Att5 = attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
         self.Up_conv5 = conv_block(ch_in=1024, ch_out=512,norm=norm)
 
         self.Up4 = up_conv(ch_in=512,ch_out=256,norm=norm)
-        self.Att4 = Attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
+        self.Att4 = attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
         self.Up_conv4 = conv_block(ch_in=512, ch_out=256,norm=norm)
         
         self.Up3 = up_conv(ch_in=256,ch_out=128,norm=norm)
-        self.Att3 = Attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
+        self.Att3 = attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
         self.Up_conv3 = conv_block(ch_in=256, ch_out=128,norm=norm)
         
         self.Up2 = up_conv(ch_in=128,ch_out=64,norm=norm)
-        self.Att2 = Attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
+        self.Att2 = attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
         self.Up_conv2 = conv_block(ch_in=128, ch_out=64,norm=norm)
 
         self.Conv_1x1 = nn.Conv2d(64,output_ch,kernel_size=1,stride=1,padding=0)
@@ -1185,19 +1318,19 @@ class R2AttU_Net(nn.Module):
         self.RRCNN5 = RRCNN_block(ch_in=512,ch_out=1024,t=t,norm=norm)        
 
         self.Up5 = up_conv(ch_in=1024,ch_out=512,norm=norm)
-        self.Att5 = Attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
+        self.Att5 = attention_block(F_g=512,F_l=512,F_int=256,norm=norm)
         self.Up_RRCNN5 = RRCNN_block(ch_in=1024, ch_out=512,t=t,norm=norm)
         
         self.Up4 = up_conv(ch_in=512,ch_out=256,norm=norm)
-        self.Att4 = Attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
+        self.Att4 = attention_block(F_g=256,F_l=256,F_int=128,norm=norm)
         self.Up_RRCNN4 = RRCNN_block(ch_in=512, ch_out=256,t=t,norm=norm)
         
         self.Up3 = up_conv(ch_in=256,ch_out=128,norm=norm)
-        self.Att3 = Attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
+        self.Att3 = attention_block(F_g=128,F_l=128,F_int=64,norm=norm)
         self.Up_RRCNN3 = RRCNN_block(ch_in=256, ch_out=128,t=t,norm=norm)
         
         self.Up2 = up_conv(ch_in=128,ch_out=64,norm=norm)
-        self.Att2 = Attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
+        self.Att2 = attention_block(F_g=64,F_l=64,F_int=32,norm=norm)
         self.Up_RRCNN2 = RRCNN_block(ch_in=128, ch_out=64,t=t,norm=norm)
         
         self.Conv_1x1 = nn.Conv2d(64,net_outputch,kernel_size=1,stride=1,padding=0)  

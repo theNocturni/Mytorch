@@ -146,6 +146,7 @@ class DiceCELoss(nn.Module):
         ce = self.ce(yhat,y)
         return dice+ce
     
+# Reconstruction loss
 class MSELoss(nn.Module):
     def __init__(self):        
         super(MSELoss, self).__init__()
@@ -158,20 +159,34 @@ class MSELoss(nn.Module):
 class L1Loss(nn.Module):
     def __init__(self):        
         super(L1Loss, self).__init__()
-        self.loss = nn.MSELoss()
+        self.loss = nn.L1Loss()
         
     def forward(self,yhat,y):
         loss = self.loss(yhat,y)
         return loss
-    
+
 class SSIMLoss(nn.Module):
     def __init__(self):        
         super(SSIMLoss, self).__init__()
-        self.loss = kornia.losses.SSIM(5)
+        self.loss = kornia.losses.SSIMLoss(9)
         
     def forward(self,yhat,y):
         loss = self.loss(yhat,y)
         return loss
+
+class ReconLoss(nn.Module):
+    def __init__(self):        
+        super(ReconLoss, self).__init__()
+        self.SSIMLoss = kornia.losses.SSIMLoss(11)
+#         self.PSNRLoss = kornia.losses.SSIMLoss(11)
+        self.L1Loss = nn.L1Loss()
+        self.MSELoss = nn.MSELoss()
+        
+    def forward(self,yhat,y):
+#         SSIMLoss = self.SSIMLoss(yhat,y)
+        L1Loss = self.L1Loss(yhat,y)
+        MSELoss = self.MSELoss(yhat,y)
+        return MSELoss+L1Loss
 
 class BoundaryCELoss(nn.Module):
     def __init__(self):        

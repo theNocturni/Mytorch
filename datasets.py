@@ -28,6 +28,7 @@ from kornia.enhance import *
 import matplotlib.pyplot as plt
 import albumentations as albu
 
+
 def clahe(img,adaptive_hist_range=False):
     """
     input 1 numpy shape image ( H x W x C)
@@ -36,6 +37,7 @@ def clahe(img,adaptive_hist_range=False):
     for idx in range(temp.shape[-1]):
         temp[...,idx] = mclahe.mclahe(img[...,idx], adaptive_hist_range=adaptive_hist_range)
     return temp
+
 
 # Data Module
 class dataset():
@@ -67,11 +69,17 @@ class dataset():
     def __getitem__(self, idx):
         # load data
         fname = self.x_list[idx]
-        x = cv2.imread(self.x_list[idx])
-        y = cv2.imread(self.y_list[idx])
-        x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
-        y[y<=1] = 0
-        y[y!=0] = 1
+        if fname.split('.')[-1] == 'npy':
+            x = np.load(self.x_list[idx])
+            y = np.load(self.y_list[idx])
+            x = np.moveaxis(x,0,-1)
+            y = np.moveaxis(y,0,-1)
+        else:
+            x = cv2.imread(self.x_list[idx])
+            y = cv2.imread(self.y_list[idx])
+            x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
+#         y[y<=1] = 0
+#         y[y!=0] = 1
 
         # shape check
         if len(y.shape)==2:
@@ -86,7 +94,7 @@ class dataset():
 
         # normalization
         x = x.astype(np.float32)
-        x = clahe(x,self.adaptive_hist_range)
+#         x = clahe(x,self.adaptive_hist_range)
         
         # spatial transform
         if self.transform_spatial:
@@ -103,73 +111,7 @@ class dataset():
         y = y[0].unsqueeze(0)
         
         return {'x':x,'y':y,'fname':fname}
-
-class dataset_adaptivehist():
-    def __init__(self,data_root='path/to/data', dataset_type='train', transform_spatial=None, transform=None, adaptive_hist_range=True):
-        
-        self.data_root = data_root
-        if dataset_type =='train':
-            self.x_list = natsorted(glob.glob(data_root+'/x_train/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_train/*'))
-        elif dataset_type =='valid':
-            self.x_list = natsorted(glob.glob(data_root+'/x_valid/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_valid/*'))
-        elif dataset_type =='test':
-            self.x_list = natsorted(glob.glob(data_root+'/x_test/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_test/*'))
-        elif dataset_type =='etest':
-            self.x_list = natsorted(glob.glob(data_root+'/x_etest/*'))
-            self.y_list = natsorted(glob.glob(data_root+'/y_etest/*'))
-            self.x_list = self.x_list[:1]
-        
-        self.transform = transform
-        self.transform_spatial = transform_spatial
-        self.adaptive_hist_range = adaptive_hist_range
-        print('total counts of dataset x {}, y {}'.format(len(self.x_list),len(self.y_list)))
-        
-    def __len__(self):
-        return len(self.x_list)
-  
-    def __getitem__(self, idx):
-        # load data
-        fname = self.x_list[idx]
-        x = cv2.imread(self.x_list[idx])
-        y = cv2.imread(self.y_list[idx])
-        x = cv2.cvtColor(x,cv2.COLOR_BGR2RGB)
-        y[y<=1] = 0
-        y[y!=0] = 1
-#         print(np.unique(y))
-
-        # shape check
-        if len(y.shape)==2:
-            y = np.expand_dims(y,-1)
-        elif len(y.shape)==3 and y.shape[-1]==3:
-            y = np.expand_dims(y[...,0],-1)
-
-        # color filter warp augmentation
-        if self.transform:
-            sample = self.transform(image = x, mask = y)
-            x, y= sample['image'], sample['mask']        
-
-        # normalization
-        x = x.astype(np.float32)
-        x = clahe(x,self.adaptive_hist_range)
-        
-        # spatial transform
-        if self.transform_spatial:
-            sample = self.transform_spatial(image = x, mask = y)
-            x, y= sample['image'], sample['mask']        
-        
-        # to tensor
-        x = np.moveaxis(x,-1,0).astype(np.float32)
-        y = np.moveaxis(y,-1,0).astype(np.float32)
-
-        x = torch.tensor(x)
-        
-        y = torch.tensor(y)
-        y = y[0].unsqueeze(0)
-        
-        return {'x':x,'y':y,'fname':fname}
+    
     
 # augmentation
 def augmentation_imagesize(data_padsize=None, data_cropsize=None, data_resize=None, data_patchsize = None):
