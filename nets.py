@@ -167,22 +167,6 @@ class manet_eb5(nn.Module):
         
     def forward(self,x):
         return self.net(x)
-    
-class unet(nn.Module):
-    def __init__(self, net_inputch=3, net_outputch=2):
-        super(unet, self).__init__()        
-        self.net_inputch = net_inputch
-        self.net_outputch = net_outputch  
-        self.net = smp.Unet(
-                        encoder_name='resnet50',
-                        decoder_use_batchnorm = True,
-                        decoder_attention_type = 'scse',
-                        encoder_depth=5,
-                        in_channels=self.net_inputch, 
-                        classes=self.net_outputch,)
-    def forward(self,x):
-        return self.net(x)    
-
 
 class unet_eb5(nn.Module):
     def __init__(self, net_inputch=3, net_outputch=2):
@@ -428,9 +412,9 @@ class waveletunet_base(nn.Module):
 
 
 
-class unet_base(nn.Module):
+class unet(nn.Module):
     def __init__(self,net_inputch=3, net_outputch=2, num_c=32, wavelet=False, attention=False, rcnn=False, nnblock = False, supervision=False):
-        super(waveletunet_base,self).__init__()
+        super(unet,self).__init__()
         
         self.attention = attention
         self.rcnn = rcnn
