@@ -17,7 +17,6 @@ from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
 
-import monai
 import nets
 import losses
 import datasets
@@ -25,6 +24,7 @@ import utils
 import wandb
 import torchmetrics
 
+import monai
 from monai.inferers import sliding_window_inference
 
 class SegModel(pl.LightningModule):
@@ -40,13 +40,17 @@ class SegModel(pl.LightningModule):
                         gpus = -1,
                         lossfn = 'CELoss',
                         lr = 1e-3,
-                        net = 'unet_eb5',
+                        net = 'unet',
                         net_inputch = 1,
                         net_outputch = 2,
                         net_activation = 'relu',
                         net_norm = 'batch',
                         net_nnblock = False,
+                        net_rcnn = False,
+                        net_reconstruction = False,
+                        net_skipatt = False,
                         net_supervision = False,
+                        net_wavelet = False,
                         net_ckpt = None,
                         precision = 32,
                         **kwargs):
@@ -63,12 +67,16 @@ class SegModel(pl.LightningModule):
         self.net_inputch = net_inputch
         self.net_outputch = net_outputch
         self.net_norm = net_norm
-        self.net_nnblock = net_nnblock
-        self.net_supervision = net_supervision
         self.net_activation = net_activation
+        self.net_nnblock = net_nnblock
+        self.net_rcnn = net_rcnn
+        self.net_reconstruction = net_reconstruction
+        self.net_skipatt = net_skipatt
+        self.net_supervision = net_supervision
+        self.net_wavelet = net_wavelet
         self.precision = precision
         self.project = project
-        self.lr =lr
+        self.lr = lr
         
         # loss       
         fn_call = getattr(losses, lossfn)
@@ -76,10 +84,17 @@ class SegModel(pl.LightningModule):
 
         # net
         fn_call = getattr(nets, net)
-        try:
-            self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch, nnblock=self.net_nnblock, supervision=self.net_supervision)
-        except:
-            self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch)
+#         try: 
+        self.net = fn_call(net_inputch=self.net_inputch, 
+                           net_outputch=self.net_outputch, 
+                           attention = self.net_skipatt,
+                           nnblock=self.net_nnblock, 
+                           rcnn = self.net_rcnn,
+                           reconstruction = self.net_reconstruction,
+                           supervision = self.net_supervision,
+                           wavelet = self.net_wavelet)
+#         except:
+#             self.net = fn_call(net_inputch=self.net_inputch, net_outputch=self.net_outputch)
             
         if self.net_norm == 'instance':
             self.net = nets.bn2instance(self.net)
@@ -94,7 +109,7 @@ class SegModel(pl.LightningModule):
             self.net = nets.relu2gelu(self.net)
         
         # metric
-        self.metric = torchmetrics.F1(num_classes = self.net_outputch) if self.net_outputch >=2 else 0 
+        self.metric = torchmetrics.F1(num_classes = self.net_outputch) if self.net_outputch>1 else torchmetrics.F1(num_classes = 2)
         
     def forward(self, x):
         return self.net(x)
@@ -103,35 +118,61 @@ class SegModel(pl.LightningModule):
         x,y  = batch['x'], batch['y']
 
         yhat = self(x)
+        if isinstance(yhat,tuple):
+            yhat, yhat_reconstruction = yhat
+            loss_reconstruction = F.mse_loss(yhat_reconstruction,y)
         yhat = utils.Activation(yhat)
         loss = self.lossfn(yhat, y)
         try:
-            metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
+            loss = loss + loss_reconstruction
+        except:
+            pass
+        try:
+            if yhat.shape[1] > 1:
+                # multi-class
+                metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
+            else:
+                # single-class
+                metric = self.metric(yhat.round().cpu().int().flatten(),y.cpu().int().flatten())
         except:
             metric = torch.tensor([0]).cuda()
-        print('x',torch.unique(x),'y',torch.unique(y),'yhat',torch.unique(yhat))
+
         self.log('loss', loss, prog_bar=True)
         self.log('metric', metric, prog_bar=True)
-        self.logger.experiment.log({'image_train' : wb_mask(x, yhat, y)}) # wandb.log({'train' : wb_mask(x, yhat, y)})
-        self.logger.experiment.log({'image_train_raw' : wb_image(x, yhat, y, name='train')})
+        self.logger.experiment.log({'segmentation_train' : wb_mask(x, yhat, y)})
+        self.logger.experiment.log({'image_train' : wb_image(x, yhat, y)})
         return {'loss': loss}
     
+
     def validation_step(self, batch, batch_idx):
         x,y  = batch['x'], batch['y']
         
 #         yhat = self(x) # changed to sliding window method
+        def predictor(x,return_idx=0): # in case of prediction is type of list
+            result = self.net(x)
+            if isinstance(result, list) or isinstance(result, tuple):
+                return result[return_idx]
+            else:
+                return result
+
         roi_size = int(self.data_patchsize) if len(self.data_patchsize.split('_'))==1 else (int(self.data_patchsize.split('_')[0]),int(self.data_patchsize.split('_')[1]))
-        yhat = sliding_window_inference(inputs=x, roi_size=roi_size, sw_batch_size=4, predictor=self.net, overlap=0.5, mode='constant')
+        yhat = sliding_window_inference(inputs=x, roi_size=roi_size, sw_batch_size=4, predictor=predictor, overlap=0.5, mode='constant')
         yhat = utils.Activation(yhat)
-        loss = self.lossfn(yhat, y)
+        loss = self.lossfn(yhat, y)        
         try:
-            metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
+            if yhat.shape[1] > 1:
+                # multi-class
+                metric = self.metric(torch.argmax(yhat,1).cpu().int().flatten(),y.cpu().int().flatten())
+            else:
+                # single-class
+                metric = self.metric(yhat.round().cpu().int().flatten(),y.cpu().int().flatten())
         except:
             metric = torch.tensor([0]).cuda()
+
         self.log('loss_val', loss, prog_bar=True)
         self.log('metric_val', metric, prog_bar=True)
-        self.logger.experiment.log({'image_val' : wb_mask(x, yhat, y)})
-        self.logger.experiment.log({'image_val_raw' : wb_image(x, yhat, y, name='valid')})
+        self.logger.experiment.log({'segmentation_val' : wb_mask(x, yhat, y)})
+        self.logger.experiment.log({'image_val' : wb_image(x, yhat, y)})
         return {'loss_val': loss}    
 
     def configure_optimizers(self):
@@ -176,9 +217,13 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--net_inputch", type=int, default=1, help='dimensions of network input channel')
         parser.add_argument("--net_outputch", type=int, default=2, help='dimensions of network output channel')          
         parser.add_argument("--net_norm", type=str2bool, default='batch', help='net normalization, [batch,instance,group]')          
-        parser.add_argument("--net_ckpt", type=str2bool, default=None, help='path to checkpoint, ex) logs/[PROJECT]/[ID]')          
+        parser.add_argument("--net_ckpt", type=str2bool, default=None, help='path to checkpoint, ex) logs/[PROJECT]/[ID]')        
         parser.add_argument("--net_nnblock", type=str2bool, default=False, help='nnblock')              
-        parser.add_argument("--net_supervision", type=str2bool, default=False, help='supervision')        
+        parser.add_argument("--net_supervision", type=str2bool, default=False, help='supervision')      
+        parser.add_argument("--net_skipatt", type=str2bool, default=False, help='supervision')          
+        parser.add_argument("--net_rcnn", type=str2bool, default=False, help='supervision')      
+        parser.add_argument("--net_reconstruction", type=str2bool, default=False, help='supervision')      
+        parser.add_argument("--net_wavelet", type=str2bool, default=False, help='supervision')        
         parser.add_argument("--net_activation", type=str2bool, default='relu', help='activation')        
         parser.add_argument("--precision", type=int, default=32, help='amp will be set when 16 is given')
         parser.add_argument("--lr", type=float, default=1e-3, help="Set learning rate of Adam optimzer.")        
@@ -269,7 +314,7 @@ def wb_mask(x, yhat, y, samples=2):
     "prediction" : {"mask_data" : yhat, "class_labels" : labels()},
     "ground truth" : {"mask_data" : y, "class_labels" : labels()}})
 
-def wb_image(x, yhat, y, samples=2, name = 'train'):
+def wb_image(x, yhat, y, samples=2):
     
     x = torchvision.utils.make_grid(x[:samples].cpu().detach(),normalize=True).permute(1,2,0)
     y = torchvision.utils.make_grid(y[:samples].cpu().detach(),normalize=True).permute(1,2,0)
@@ -278,12 +323,7 @@ def wb_image(x, yhat, y, samples=2, name = 'train'):
     x = x.numpy()
     y = y.numpy()
     yhat = yhat.numpy()
-#     wandb.log({name+"_x": [wandb.Image(x, caption="x")]})
-#     wandb.log({name+"_y": [wandb.Image(y, caption="y")]})
-#     wandb.log({name+"_yhat": [wandb.Image(yhat, caption="yhat")]})
-    wandb.log({name+"_x": [wandb.Image(x, caption="x")],name+"_y": [wandb.Image(y, caption="y")], name+"_yhat": [wandb.Image(yhat, caption="yhat")]})
-#     print('x {} y {} yhat {}'.format(np.unique(x),np.unique(y),np.unique(yhat)))
-    return 0
+    return wandb.Image(np.concatenate([x,y,yhat]), caption="Upper(x) Mid(y) Lower(yhat)")
 
 def main(args: Namespace):
     # ------------------------
@@ -329,8 +369,7 @@ def main(args: Namespace):
                                             callbacks=[Checkpoint_callback,
                                                        LearningRateMonitor(),
                                                        StochasticWeightAveraging(),
-#                                                        EarlyStopping(monitor='loss_val',patience=100),
-                                                       EarlyStopping(monitor='metric_val',mode='max',patience=300),
+                                                       EarlyStopping(monitor='loss_val',patience=200),
                                                       ],
                                             deterministic=True,
                                             gpus = -1,
